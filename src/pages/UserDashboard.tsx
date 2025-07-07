@@ -5,7 +5,8 @@ import { useUserQueue } from "../hooks/useUserQueue";
 import LocationPicker from "../components/user/LocationPicker";
 import NearbyBarbers from "../components/user/NearbyBarbers";
 import QueueStatus from "../components/user/QueueStatus";
-import { type Barber } from "../types";
+import ThemeToggle from "../components/common/ThemeToggle";
+import {type Barber } from "../types";
 
 const UserDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -44,19 +45,20 @@ const UserDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-50 transition-all duration-300">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white dark:bg-dark-100 shadow-sm border-b border-gray-200 dark:border-dark-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">NextCut</h1>
-              <p className="text-sm text-gray-600">Customer Dashboard</p>
+              <h1 className="text-2xl font-bold text-title">NextCut</h1>
+              <p className="text-sm text-subtitle">Customer Dashboard</p>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700 hidden sm:inline">
+              <span className="text-body hidden sm:inline">
                 Welcome, {user?.name}
               </span>
+              <ThemeToggle />
               <button onClick={logout} className="btn-secondary">
                 Logout
               </button>
@@ -82,10 +84,10 @@ const UserDashboard: React.FC = () => {
 
           {/* Location Status */}
           {location && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="status-success rounded-lg p-4">
               <div className="flex items-center">
                 <svg
-                  className="w-5 h-5 text-green-600 mr-2"
+                  className="w-5 h-5 text-green-600 dark:text-emerald-400 mr-2"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -103,7 +105,7 @@ const UserDashboard: React.FC = () => {
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                <span className="text-green-800 font-medium">
+                <span className="font-medium">
                   Location enabled: {location.lat.toFixed(6)},{" "}
                   {location.long.toFixed(6)}
                 </span>

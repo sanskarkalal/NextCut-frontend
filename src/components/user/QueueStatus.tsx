@@ -31,10 +31,10 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
     : 0;
 
   return (
-    <div className="card bg-gradient-to-r from-primary-50 to-primary-100 border-primary-200">
+    <div className="card queue-status-card shadow-lg dark:shadow-dark-xl">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
             <svg
               className="w-6 h-6 text-white"
               fill="none"
@@ -50,10 +50,10 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-title animate-pulse-slow">
               You're in Queue!
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-subtitle">
               {queueStatus.barber?.name || "Unknown Barber"}
             </p>
           </div>
@@ -62,7 +62,7 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+          className="p-2 text-muted hover:text-body transition-all duration-200 hover:scale-110"
           title="Refresh status"
         >
           <svg
@@ -82,40 +82,40 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-primary-600">
+        <div className="text-center stat-card-primary rounded-lg p-3">
+          <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
             {queueStatus.queuePosition || 1}
           </div>
-          <div className="text-sm text-gray-600">Position</div>
+          <div className="text-sm text-muted">Position</div>
         </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-bold text-orange-600">
+        <div className="text-center stat-card-warning rounded-lg p-3">
+          <div className="text-2xl font-bold text-orange-600 dark:text-amber-400">
             {estimatedWaitTime}m
           </div>
-          <div className="text-sm text-gray-600">Est. Wait</div>
+          <div className="text-sm text-muted">Est. Wait</div>
         </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">
+        <div className="text-center stat-card-success rounded-lg p-3">
+          <div className="text-2xl font-bold text-green-600 dark:text-emerald-400">
             {waitingSince}m
           </div>
-          <div className="text-sm text-gray-600">Waiting</div>
+          <div className="text-sm text-muted">Waiting</div>
         </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">
+        <div className="text-center stat-card-purple rounded-lg p-3">
+          <div className="text-2xl font-bold text-blue-600 dark:text-purple-400">
             {queueStatus.queuePosition === 1 ? "Next!" : "Waiting"}
           </div>
-          <div className="text-sm text-gray-600">Status</div>
+          <div className="text-sm text-muted">Status</div>
         </div>
       </div>
 
       {queueStatus.queuePosition === 1 && (
-        <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-4">
+        <div className="status-success rounded-lg p-4 mb-4 animate-glow">
           <div className="flex items-center">
             <svg
-              className="w-5 h-5 text-green-600 mr-2"
+              className="w-5 h-5 text-green-600 dark:text-emerald-400 mr-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -128,8 +128,10 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
               />
             </svg>
             <div>
-              <p className="font-medium text-green-900">You're Next!</p>
-              <p className="text-sm text-green-700">
+              <p className="font-medium text-green-900 dark:text-emerald-300">
+                You're Next!
+              </p>
+              <p className="text-sm text-green-700 dark:text-emerald-400">
                 Please head to the barber shop now.
               </p>
             </div>
@@ -140,7 +142,7 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
       <button
         onClick={onLeaveQueue}
         disabled={isLeaving}
-        className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-dark-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg hover:shadow-xl dark:hover:shadow-glow-pink transform hover:scale-105"
       >
         {isLeaving ? (
           <>

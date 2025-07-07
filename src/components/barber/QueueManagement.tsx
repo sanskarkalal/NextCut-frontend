@@ -1,5 +1,5 @@
 import React from "react";
-import type { BarberQueueResponse } from "../../services/barberService";
+import {type BarberQueueResponse } from "../../services/barberService";
 import LoadingSpinner from "../common/LoadingSpinner";
 
 interface QueueManagementProps {
@@ -24,7 +24,7 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
       <div className="card">
         <div className="text-center py-8">
           <LoadingSpinner size="lg" />
-          <p className="text-gray-600 mt-4">Loading your queue...</p>
+          <p className="text-muted mt-4">Loading your queue...</p>
         </div>
       </div>
     );
@@ -34,9 +34,9 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
     return (
       <div className="card">
         <div className="text-center py-8">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-8 h-8 text-red-600"
+              className="w-8 h-8 text-red-600 dark:text-red-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -49,10 +49,10 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-title mb-2">
             Error Loading Queue
           </h3>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-muted mb-4">{error}</p>
           <button onClick={onRefresh} className="btn-primary">
             Try Again
           </button>
@@ -66,8 +66,8 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
       {/* Queue Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Your Queue</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-title">Your Queue</h2>
+          <p className="text-subtitle">
             {queue?.queueLength || 0} customer
             {queue?.queueLength !== 1 ? "s" : ""} waiting
           </p>
@@ -75,7 +75,7 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="btn-secondary flex items-center space-x-2"
+          className="btn-secondary flex items-center space-x-2 hover:scale-105 transition-transform"
         >
           <svg
             className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
@@ -96,9 +96,9 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
 
       {/* Queue Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="stat-card-primary rounded-lg p-4">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
               <svg
                 className="w-4 h-4 text-white"
                 fill="none"
@@ -114,17 +114,17 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-blue-900">Total Waiting</p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-sm font-medium">Total Waiting</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {queue?.queueLength || 0}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="stat-card-success rounded-lg p-4">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-green-600 dark:bg-emerald-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
               <svg
                 className="w-4 h-4 text-white"
                 fill="none"
@@ -140,19 +140,17 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-green-900">
-                Est. Wait Time
-              </p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-sm font-medium">Est. Wait Time</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-emerald-400">
                 {queue?.queueLength ? `${queue.queueLength * 20}m` : "0m"}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <div className="stat-card-purple rounded-lg p-4">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-purple-600 dark:bg-purple-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-purple">
               <svg
                 className="w-4 h-4 text-white"
                 fill="none"
@@ -168,8 +166,8 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-purple-900">Status</p>
-              <p className="text-lg font-bold text-purple-600">
+              <p className="text-sm font-medium">Status</p>
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                 {queue?.queueLength ? "Active" : "Available"}
               </p>
             </div>
@@ -181,9 +179,9 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
       {queue?.queueLength === 0 ? (
         <div className="card">
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-dark-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-8 h-8 text-gray-400"
+                className="w-8 h-8 text-gray-400 dark:text-dark-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -196,10 +194,10 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-title mb-2">
               No Customers Waiting
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted">
               Your queue is empty. Customers can find you in the app and join
               your queue.
             </p>
@@ -207,7 +205,7 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
         </div>
       ) : (
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-title mb-4">
             Current Queue
           </h3>
           <div className="space-y-3">
@@ -251,14 +249,14 @@ const QueueCustomerCard: React.FC<QueueCustomerCardProps> = ({
   ); // minutes
 
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-200 rounded-lg border border-gray-200 dark:border-dark-300 hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-200">
       <div className="flex items-center space-x-4">
-        <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold">
+        <div className="w-10 h-10 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg dark:shadow-glow-blue">
           {customer.position}
         </div>
         <div>
-          <h4 className="font-medium text-gray-900">{customer.user.name}</h4>
-          <p className="text-sm text-gray-600">
+          <h4 className="font-medium text-title">{customer.user.name}</h4>
+          <p className="text-sm text-muted">
             Waiting for {waitTime < 1 ? "less than 1" : waitTime} minute
             {waitTime !== 1 ? "s" : ""}
           </p>
@@ -269,7 +267,7 @@ const QueueCustomerCard: React.FC<QueueCustomerCardProps> = ({
         <button
           onClick={() => onRemove(customer.user.id, customer.user.name)}
           disabled={isRemoving}
-          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          className="bg-green-600 hover:bg-green-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-dark-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl dark:hover:shadow-glow-blue transform hover:scale-105"
         >
           {isRemoving ? (
             <>
