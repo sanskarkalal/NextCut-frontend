@@ -1,12 +1,25 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:3000"; // Your backend URL
+// Environment-based API URL
+const getApiBaseUrl = () => {
+  // For production, use your deployed backend URL
+  if (import.meta.env.PROD) {
+    return (
+      import.meta.env.VITE_API_URL || "https://your-backend-url.railway.app"
+    );
+  }
+  // For development
+  return import.meta.env.VITE_API_URL || "http://localhost:3000";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Request interceptor to add auth token
