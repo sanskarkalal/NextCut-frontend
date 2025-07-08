@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
@@ -7,7 +6,10 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import UserDashboard from "./pages/UserDashboard";
 import BarberDashboard from "./pages/BarberDashboard";
+import { autoInitServiceWorker } from "./utils/serviceWorkerInit";
 
+// Add this line at the top level of your app initialization
+autoInitServiceWorker();
 function App() {
   return (
     <ThemeProvider>

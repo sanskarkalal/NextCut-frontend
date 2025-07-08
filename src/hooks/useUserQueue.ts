@@ -156,6 +156,9 @@ export const useUserQueue = (): UseUserQueueReturn => {
               "✅ Notifications enabled! You'll get updates about your queue position."
             );
           }
+        } else if (queueNotifications.isPermissionGranted()) {
+          // Initialize service worker if permission already granted
+          await queueNotifications.init();
         }
 
         // Refresh status to get updated position

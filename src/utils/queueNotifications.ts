@@ -6,6 +6,26 @@ export const queueNotifications = {
   // Audio context for playing notification sounds
   audioContext: null as AudioContext | null,
 
+  // Service worker registration
+  serviceWorkerRegistration: null as ServiceWorkerRegistration | null,
+
+  // Initialize notifications and service worker
+  async init(): Promise<void> {
+    // Register service worker for mobile notifications
+    if ("serviceWorker" in navigator) {
+      try {
+        this.serviceWorkerRegistration = await navigator.serviceWorker.register(
+          "/sw.js"
+        );
+        console.log("Service Worker registered successfully");
+      } catch (error) {
+        console.warn("Service Worker registration failed:", error);
+      }
+    }
+
+    this.initAudio();
+  },
+
   // Initialize audio context
   initAudio(): void {
     if (!this.audioContext) {
@@ -110,6 +130,7 @@ export const queueNotifications = {
     playBeep(0.3, 1000); // Second beep (higher)
     playBeep(0.6, 1200); // Third beep (highest)
   },
+
   // Check if browser supports notifications
   isSupported(): boolean {
     return "Notification" in window;
@@ -120,13 +141,15 @@ export const queueNotifications = {
     return this.isSupported() && Notification.permission === "granted";
   },
 
-  // Request notification permission
+  // Request notification permission (enhanced)
   async requestPermission(): Promise<NotificationPermission> {
     if (!this.isSupported()) {
       return "denied";
     }
 
     if (Notification.permission === "granted") {
+      // Initialize service worker if permission already granted
+      await this.init();
       return "granted";
     }
 
@@ -136,25 +159,56 @@ export const queueNotifications = {
 
     // Request permission
     const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+      // Initialize service worker after getting permission
+      await this.init();
+    }
+
     return permission;
   },
 
-  // Show notification
+  // Show notification (enhanced for mobile)
   show(title: string, body: string, type: NotificationType = "update"): void {
     // Play sound first
     this.playSound(type);
 
+    // Try service worker notification first (better for mobile)
+    if (this.serviceWorkerRegistration) {
+      try {
+        navigator.serviceWorker.ready.then((registration) => {
+          // Send message to service worker to show notification
+          if (registration.active) {
+            registration.active.postMessage({
+              type: "SHOW_NOTIFICATION",
+              title,
+              body,
+              notificationType: type,
+            });
+            return;
+          }
+        });
+      } catch (error) {
+        console.warn(
+          "Service worker notification failed, falling back to regular notification:",
+          error
+        );
+      }
+    }
+
+    // Fallback to regular notification API
     if (!this.isPermissionGranted()) {
       return;
     }
 
     const options: NotificationOptions = {
       body,
-      icon: "/favicon.ico", // You can add a proper icon path
+      icon: "/favicon.ico",
       badge: "/favicon.ico",
-      tag: `queue-${type}`, // Prevents duplicate notifications
-      requireInteraction: type === "next", // Keep "next in line" notification visible
+      tag: `queue-${type}`,
+      requireInteraction: type === "next",
       silent: true, // We're playing our own custom sound
+      // vibrate is not supported in NotificationOptions in browsers
     };
 
     // Customize notification based on type

@@ -14,6 +14,8 @@ export interface JoinQueueResponse {
     barber: {
       id: number;
       name: string;
+      lat?: number; // Added coordinates
+      long?: number;
     };
   };
 }
@@ -35,6 +37,8 @@ export interface QueueStatusResponse {
   barber: {
     id: number;
     name: string;
+    lat?: number; // Added coordinates for directions
+    long?: number;
   } | null;
   enteredAt: string | null;
 }

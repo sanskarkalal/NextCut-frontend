@@ -1,5 +1,6 @@
 import React from "react";
 import { type QueueStatusResponse } from "../../services/userQueueService";
+import { directionsUtils } from "../../utils/directionUtil";
 import LoadingSpinner from "../common/LoadingSpinner";
 
 interface QueueStatusProps {
@@ -59,6 +60,20 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
       return "text-yellow-600 dark:text-yellow-400";
     } else {
       return "text-blue-600 dark:text-blue-400";
+    }
+  };
+
+  // Get directions to barber
+  const handleGetDirections = () => {
+    if (
+      queueStatus.barber &&
+      directionsUtils.isValidLocation(queueStatus.barber as { lat: number; long: number; name: string })
+    ) {
+      directionsUtils.openDirections({
+        lat: queueStatus.barber.lat!,
+        long: queueStatus.barber.long!,
+        name: queueStatus.barber.name,
+      });
     }
   };
 
@@ -138,6 +153,56 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Get Directions Button */}
+      {queueStatus.barber &&
+        queueStatus.barber.lat !== undefined &&
+        queueStatus.barber.long !== undefined &&
+        directionsUtils.isValidLocation(queueStatus.barber as { lat: number; long: number; name: string }) && (
+          <div className="mb-6">
+            <button
+              onClick={handleGetDirections}
+              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-100 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 space-x-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <span>{directionsUtils.getDirectionsButtonText()}</span>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </button>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+              Opens in your default maps app with turn-by-turn directions
+            </p>
+          </div>
+        )}
 
       {/* Progress indicator */}
       {queueStatus.queuePosition && queueStatus.queuePosition > 1 && (
