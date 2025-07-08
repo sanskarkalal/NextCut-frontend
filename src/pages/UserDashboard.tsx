@@ -25,7 +25,7 @@ const UserDashboard: React.FC = () => {
     clearLocationError,
   } = useLocation();
 
-  // Queue hook
+  // Queue hook - now returns isJoining as number | null
   const {
     queueStatus,
     isLoading: isQueueLoading,
@@ -52,16 +52,19 @@ const UserDashboard: React.FC = () => {
       <div className="bg-white dark:bg-dark-100 shadow-sm border-b border-gray-200 dark:border-dark-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-title">NextCut</h1>
-              <p className="text-sm text-subtitle">Customer Dashboard</p>
-            </div>
             <div className="flex items-center space-x-4">
-              <span className="text-body hidden sm:inline">
-                Welcome, {user?.name}
-              </span>
+              <h1 className="text-2xl font-bold text-title">NextCut</h1>
+              <div className="text-subtitle">
+                Welcome back, {user?.name || "User"}!
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
               <ThemeToggle />
-              <button onClick={logout} className="btn-secondary">
+              <button
+                onClick={logout}
+                className="btn-secondary text-sm hover:scale-105 transition-transform"
+              >
                 Logout
               </button>
             </div>
@@ -71,7 +74,7 @@ const UserDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Queue Status - Show if user is in queue */}
           {queueStatus?.inQueue && (
             <QueueStatus
@@ -84,15 +87,15 @@ const UserDashboard: React.FC = () => {
             />
           )}
 
-          {/* Location Picker - Show if no location or user is not in queue */}
-          {(!hasLocationPermission || !location) && !queueStatus?.inQueue && (
+          {/* Location Picker - Show if user doesn't have location permission */}
+          {!hasLocationPermission && (
             <LocationPicker
-              locationError={locationError}
-              isLoadingLocation={isLoadingLocation}
               onRequestLocation={requestLocation}
+              isLoading={isLoadingLocation}
+              error={locationError}
               onClearError={clearLocationError}
-              isLoading={false}
-              error={null}
+              locationError={null}
+              isLoadingLocation={false}
             />
           )}
 
@@ -104,7 +107,7 @@ const UserDashboard: React.FC = () => {
               error={barbersError}
               onRefresh={refreshBarbers}
               onJoinQueue={handleJoinQueue}
-              isJoining={isJoining}
+              isJoining={isJoining} // Now passes barberId | null
               userLocation={location}
               userInQueue={false}
             />

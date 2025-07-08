@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   userQueueService,
   type QueueStatusResponse,
 } from "../services/userQueueService";
 import toast from "react-hot-toast";
+import { queueNotifications } from "../utils/queueNotifications";
 
 interface UseUserQueueReturn {
   queueStatus: QueueStatusResponse | null;
   isLoading: boolean;
-  isJoining: boolean;
+  isJoining: number | null; // Now stores barberId being joined
   isLeaving: boolean;
   error: string | null;
   joinQueue: (barberId: number, barberName: string) => Promise<void>;
@@ -22,9 +23,12 @@ export const useUserQueue = (): UseUserQueueReturn => {
     null
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
+  const [isJoining, setIsJoining] = useState<number | null>(null); // barberId being joined
   const [isLeaving, setIsLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Ref to track previous queue position for notifications
+  const previousPosition = useRef<number | null>(null);
 
   // Fetch current queue status from the backend
   const fetchQueueStatus = useCallback(async () => {
@@ -32,6 +36,37 @@ export const useUserQueue = (): UseUserQueueReturn => {
       setIsLoading(true);
       setError(null);
       const status = await userQueueService.getQueueStatus();
+
+      // Check for position changes and notify user
+      if (status.inQueue && status.queuePosition !== null) {
+        const currentPosition = status.queuePosition;
+        const prevPosition = previousPosition.current;
+        const barberName = status.barber?.name || "Unknown Barber";
+
+        // Only notify if this isn't the first load and position changed
+        if (prevPosition !== null && prevPosition !== currentPosition) {
+          if (currentPosition < prevPosition) {
+            // Position improved (moved up in queue)
+            queueNotifications.notifyPositionImproved(
+              currentPosition,
+              barberName
+            );
+          } else if (currentPosition > prevPosition) {
+            // Position got worse (someone joined ahead - this shouldn't normally happen)
+            queueNotifications.notifyPositionUpdate(
+              currentPosition,
+              barberName
+            );
+          }
+        }
+
+        // Update previous position
+        previousPosition.current = currentPosition;
+      } else {
+        // Not in queue, reset previous position
+        previousPosition.current = null;
+      }
+
       setQueueStatus(status);
     } catch (error: any) {
       // If user is not in queue or API error, set default status
@@ -41,6 +76,9 @@ export const useUserQueue = (): UseUserQueueReturn => {
         barber: null,
         enteredAt: null,
       });
+
+      // Reset previous position when not in queue
+      previousPosition.current = null;
 
       // Only show error if it's not a 404 (user not in queue)
       if (!error.message.includes("404")) {
@@ -54,21 +92,31 @@ export const useUserQueue = (): UseUserQueueReturn => {
   // Join queue
   const joinQueue = useCallback(
     async (barberId: number, barberName: string) => {
-      setIsJoining(true);
+      setIsJoining(barberId); // Set specific barber ID being joined
       setError(null);
 
       try {
         const response = await userQueueService.joinQueue(barberId);
-        toast.success(response.msg || `Joined ${barberName}'s queue!`);
 
-        // Fetch the real queue status after joining
+        // Fetch the real queue status after joining to get position
         await fetchQueueStatus();
+
+        // Show success notification with position info
+        const currentStatus = await userQueueService.getQueueStatus();
+        if (currentStatus.inQueue && currentStatus.queuePosition) {
+          queueNotifications.notifyJoinedQueue(
+            currentStatus.queuePosition,
+            barberName
+          );
+        } else {
+          toast.success(response.msg || `Joined ${barberName}'s queue!`);
+        }
       } catch (error: any) {
         const errorMessage = error.message || "Failed to join queue";
         toast.error(errorMessage);
         setError(errorMessage);
       } finally {
-        setIsJoining(false);
+        setIsJoining(null); // Clear joining state
       }
     },
     [fetchQueueStatus]
@@ -83,13 +131,14 @@ export const useUserQueue = (): UseUserQueueReturn => {
       const response = await userQueueService.leaveQueue();
       toast.success(response.msg || "Left queue successfully");
 
-      // Clear queue status
+      // Clear queue status and previous position
       setQueueStatus({
         inQueue: false,
         queuePosition: null,
         barber: null,
         enteredAt: null,
       });
+      previousPosition.current = null;
     } catch (error: any) {
       const errorMessage = error.message || "Failed to leave queue";
       toast.error(errorMessage);
