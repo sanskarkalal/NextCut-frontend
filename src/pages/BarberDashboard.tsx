@@ -40,8 +40,8 @@ const BarberDashboard: React.FC = () => {
           error={error}
           onRefresh={refreshQueue}
           onRemoveUser={removeUser}
-            removingUserId={removingUserId} // Changed from isRemoving to removingUserId
-          />
+          removingUserId={removingUserId} // Changed from isRemoving to removingUserId
+        />
       </div>
     </div>
   );

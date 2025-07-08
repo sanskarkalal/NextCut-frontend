@@ -54,28 +54,33 @@ export const useUserQueue = (): UseUserQueueReturn => {
             const positionsMoved = prevPosition - currentPosition;
 
             if (currentPosition === 1) {
-              // User is now next in line
+              // User is now next in line - play special sound and show notification
               toast.success(
                 `🎉 You're next! ${barberName} will see you soon.`,
                 {
-                  duration: 6000,
+                  duration: 8000, // Show longer for next in line
                   style: {
                     background: "#10B981",
                     color: "white",
+                    fontSize: "16px",
+                    fontWeight: "bold",
                   },
                 }
               );
 
-              // Show notification if browser supports it
+              // Show notification with sound
               if (
                 queueNotifications.isSupported() &&
                 queueNotifications.isPermissionGranted()
               ) {
                 queueNotifications.show(
-                  "You're Next!",
-                  `${barberName} will see you soon.`,
+                  "🎉 You're Next in Line!",
+                  `${barberName} will see you soon. Please stay nearby!`,
                   "next"
                 );
+              } else {
+                // Play sound even if notifications aren't enabled
+                queueNotifications.playSound("next");
               }
             } else {
               // General position improvement
@@ -215,10 +220,10 @@ export const useUserQueue = (): UseUserQueueReturn => {
     let interval: NodeJS.Timeout;
 
     if (queueStatus?.inQueue) {
-      // Poll every 10 seconds when in queue
+      // Poll every 5 seconds when in queue for faster updates
       interval = setInterval(() => {
         fetchQueueStatus();
-      }, 10000);
+      }, 5000);
     } else {
       // Poll every 30 seconds when not in queue
       interval = setInterval(() => {

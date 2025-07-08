@@ -196,8 +196,8 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
           <span>
-            Auto-updating every 10 seconds • You'll get notifications when your
-            position changes
+            Auto-updating every 5 seconds • You'll get notifications and sounds
+            when your position changes
           </span>
         </div>
       </div>

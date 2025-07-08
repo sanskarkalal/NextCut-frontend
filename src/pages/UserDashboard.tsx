@@ -146,14 +146,14 @@ const UserDashboard: React.FC = () => {
                 You're in {queueStatus.barber?.name}'s Queue!
               </h3>
               <p className="text-muted mb-4">
-                You'll get real-time updates about your position. Notifications
-                are enabled to keep you informed even when you're not actively
-                using the app.
+                You'll get real-time updates about your position with sound
+                notifications. Updates happen every 5 seconds to keep you
+                informed even when you're not actively using the app.
               </p>
               <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center space-x-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>Auto-updating</span>
+                  <span>5-second updates</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <svg
@@ -170,6 +170,22 @@ const UserDashboard: React.FC = () => {
                     />
                   </svg>
                   <span>Push notifications</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M6.343 6.343a9 9 0 000 12.728m2.829-9.9a5 5 0 000 7.072"
+                    />
+                  </svg>
+                  <span>Sound alerts</span>
                 </div>
               </div>
             </div>
