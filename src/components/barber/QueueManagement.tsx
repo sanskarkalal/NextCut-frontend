@@ -1,5 +1,5 @@
 import React from "react";
-import {type BarberQueueResponse } from "../../services/barberService";
+import { type BarberQueueResponse } from "../../services/barberService";
 import LoadingSpinner from "../common/LoadingSpinner";
 
 interface QueueManagementProps {
@@ -8,7 +8,7 @@ interface QueueManagementProps {
   error: string | null;
   onRefresh: () => void;
   onRemoveUser: (userId: number, userName: string) => void;
-  isRemoving: boolean;
+  removingUserId: number | null; // Changed from isRemoving
 }
 
 const QueueManagement: React.FC<QueueManagementProps> = ({
@@ -17,7 +17,7 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
   error,
   onRefresh,
   onRemoveUser,
-  isRemoving,
+  removingUserId, // Use specific user ID being removed
 }) => {
   if (isLoading && !queue) {
     return (
@@ -142,15 +142,15 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
             <div className="ml-3">
               <p className="text-sm font-medium">Est. Wait Time</p>
               <p className="text-2xl font-bold text-green-600 dark:text-emerald-400">
-                {queue?.queueLength ? `${queue.queueLength * 20}m` : "0m"}
+                {queue?.queueLength ? `${queue.queueLength * 15}m` : "0m"}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="stat-card-purple rounded-lg p-4">
+        <div className="stat-card-warning rounded-lg p-4">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-purple-600 dark:bg-purple-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-purple">
+            <div className="w-8 h-8 bg-yellow-600 dark:bg-yellow-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
               <svg
                 className="w-4 h-4 text-white"
                 fill="none"
@@ -161,27 +161,27 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium">Status</p>
-              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                {queue?.queueLength ? "Active" : "Available"}
+              <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                {queue?.queueLength ? "Active" : "Empty"}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Queue List */}
-      {queue?.queueLength === 0 ? (
+      {/* Queue Content */}
+      {!queue?.queueLength ? (
         <div className="card">
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-dark-200 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-gray-100 dark:bg-dark-200 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
-                className="w-8 h-8 text-gray-400 dark:text-dark-500"
+                className="w-10 h-10 text-gray-400 dark:text-gray-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -194,12 +194,11 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-title mb-2">
-              No Customers Waiting
+            <h3 className="text-xl font-medium text-title mb-3">
+              No Customers in Queue
             </h3>
-            <p className="text-muted">
-              Your queue is empty. Customers can find you in the app and join
-              your queue.
+            <p className="text-muted max-w-md mx-auto">
+              Customers can find you in the app and join your queue.
             </p>
           </div>
         </div>
@@ -214,7 +213,7 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
                 key={customer.queueId}
                 customer={customer}
                 onRemove={onRemoveUser}
-                isRemoving={isRemoving}
+                isRemoving={removingUserId === customer.user.id} // Check specific user
               />
             ))}
           </div>
@@ -235,13 +234,13 @@ interface QueueCustomerCardProps {
     enteredAt: string;
   };
   onRemove: (userId: number, userName: string) => void;
-  isRemoving: boolean;
+  isRemoving: boolean; // Now specific to this customer
 }
 
 const QueueCustomerCard: React.FC<QueueCustomerCardProps> = ({
   customer,
   onRemove,
-  isRemoving,
+  isRemoving, // Only true for this specific customer
 }) => {
   const enteredTime = new Date(customer.enteredAt);
   const waitTime = Math.floor(
@@ -266,7 +265,7 @@ const QueueCustomerCard: React.FC<QueueCustomerCardProps> = ({
       <div className="flex items-center space-x-2">
         <button
           onClick={() => onRemove(customer.user.id, customer.user.name)}
-          disabled={isRemoving}
+          disabled={isRemoving} // Only disabled for this specific customer
           className="bg-green-600 hover:bg-green-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-dark-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl dark:hover:shadow-glow-blue transform hover:scale-105"
         >
           {isRemoving ? (

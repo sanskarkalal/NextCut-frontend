@@ -3,7 +3,7 @@ import { type QueueStatusResponse } from "../../services/userQueueService";
 import LoadingSpinner from "../common/LoadingSpinner";
 
 interface QueueStatusProps {
-  queueStatus: QueueStatusResponse | null;
+  queueStatus: QueueStatusResponse;
   estimatedWaitTime: number;
   isLoading: boolean;
   isLeaving: boolean;
@@ -19,78 +19,71 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
   onLeaveQueue,
   onRefresh,
 }) => {
-  if (!queueStatus?.inQueue) {
-    return null;
-  }
-
-  const enteredTime = queueStatus.enteredAt
-    ? new Date(queueStatus.enteredAt)
-    : null;
-  const waitingSince = enteredTime
-    ? Math.floor((Date.now() - enteredTime.getTime()) / (1000 * 60))
+  // Calculate how long user has been waiting
+  const waitingSince = queueStatus.enteredAt
+    ? Math.floor(
+        (Date.now() - new Date(queueStatus.enteredAt).getTime()) / (1000 * 60)
+      )
     : 0;
 
-  // Format estimated wait time
+  // Format wait time helper
   const formatWaitTime = (minutes: number) => {
-    if (minutes === 0) return "You're next!";
-    if (minutes < 60) return `${minutes} minutes`;
+    if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
-  // Get position ordinal (1st, 2nd, 3rd, etc.)
-  const getPositionOrdinal = (position: number) => {
-    const lastDigit = position % 10;
-    const lastTwoDigits = position % 100;
+  // Get position-based message
+  const getPositionMessage = () => {
+    if (!queueStatus.queuePosition) return "";
 
-    if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
-      return `${position}th`;
+    if (queueStatus.queuePosition === 1) {
+      return "🎉 You're next in line!";
+    } else if (queueStatus.queuePosition === 2) {
+      return "Almost there! You're second in line.";
+    } else if (queueStatus.queuePosition <= 3) {
+      return "You're very close to your turn!";
+    } else {
+      return `${queueStatus.queuePosition - 1} people ahead of you.`;
     }
+  };
 
-    switch (lastDigit) {
-      case 1:
-        return `${position}st`;
-      case 2:
-        return `${position}nd`;
-      case 3:
-        return `${position}rd`;
-      default:
-        return `${position}th`;
+  // Get status color based on position
+  const getStatusColor = () => {
+    if (!queueStatus.queuePosition) return "text-blue-600 dark:text-blue-400";
+
+    if (queueStatus.queuePosition === 1) {
+      return "text-green-600 dark:text-green-400";
+    } else if (queueStatus.queuePosition <= 3) {
+      return "text-yellow-600 dark:text-yellow-400";
+    } else {
+      return "text-blue-600 dark:text-blue-400";
     }
   };
 
   return (
-    <div className="card queue-status-card shadow-lg dark:shadow-dark-xl border-2 border-primary-200 dark:border-primary-800">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
-            <span className="text-2xl font-bold text-white">
-              {queueStatus.queuePosition}
-            </span>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-title animate-pulse-slow">
-              {queueStatus.queuePosition === 1
-                ? "You're Next!"
-                : `${getPositionOrdinal(
-                    queueStatus.queuePosition || 0
-                  )} in Queue`}
-            </h3>
-            <p className="text-subtitle font-medium">
-              {queueStatus.barber?.name || "Unknown Barber"}
-            </p>
-          </div>
+    <div className="card bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-primary-200 dark:border-primary-700">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-title flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span>In Queue - {queueStatus.barber?.name}</span>
+          </h2>
+          <p className={`text-lg font-medium ${getStatusColor()}`}>
+            {getPositionMessage()}
+          </p>
         </div>
 
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="p-3 text-muted hover:text-body transition-all duration-200 hover:scale-110 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-200"
-          title="Refresh status"
+          className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+          title="Refresh queue status"
         >
           <svg
-            className={`w-6 h-6 ${isLoading ? "animate-spin" : ""}`}
+            className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -103,6 +96,26 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
             />
           </svg>
         </button>
+      </div>
+
+      {/* Position Display */}
+      <div className="flex justify-center mb-6">
+        <div className="relative">
+          <div
+            className={`w-20 h-20 ${
+              queueStatus.queuePosition === 1
+                ? "bg-green-600 dark:bg-green-500 animate-pulse"
+                : "bg-primary-600 dark:bg-primary-500"
+            } rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-2xl`}
+          >
+            {queueStatus.queuePosition || "?"}
+          </div>
+          {queueStatus.queuePosition === 1 && (
+            <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+              <span className="text-yellow-800 text-xl">👑</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Queue Stats */}
@@ -133,19 +146,61 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
             <span>Queue Progress</span>
             <span>{queueStatus.queuePosition - 1} people ahead</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-dark-300 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-dark-300 rounded-full h-3">
             <div
-              className="bg-primary-600 dark:bg-primary-500 h-2 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-primary-600 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
               style={{
                 width: `${Math.max(
                   10,
-                  100 - (queueStatus.queuePosition - 1) * 20
+                  100 - (queueStatus.queuePosition - 1) * 15
                 )}%`,
               }}
             ></div>
           </div>
         </div>
       )}
+
+      {/* Next in line special message */}
+      {queueStatus.queuePosition === 1 && (
+        <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mr-3">
+              <svg
+                className="w-4 h-4 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-green-800 dark:text-green-200">
+                You're next! Please stay nearby.
+              </p>
+              <p className="text-sm text-green-600 dark:text-green-300">
+                {queueStatus.barber?.name} will call you soon.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-refresh notice */}
+      <div className="bg-gray-50 dark:bg-dark-200 rounded-lg p-3 mb-4">
+        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+          <span>
+            Auto-updating every 10 seconds • You'll get notifications when your
+            position changes
+          </span>
+        </div>
+      </div>
 
       {/* Leave queue button */}
       <button
@@ -155,13 +210,13 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
       >
         {isLeaving ? (
           <>
-            <LoadingSpinner size="sm" className="mr-2" />
-            Leaving Queue...
+            <LoadingSpinner size="sm" />
+            <span className="ml-2">Leaving queue...</span>
           </>
         ) : (
           <>
             <svg
-              className="w-5 h-5 mr-2"
+              className="w-4 h-4 mr-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

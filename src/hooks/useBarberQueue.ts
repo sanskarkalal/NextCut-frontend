@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { barberService, type BarberQueueResponse } from "../services/barberService";
+import {
+  barberService,
+  type BarberQueueResponse,
+} from "../services/barberService";
 import toast from "react-hot-toast";
 
 interface UseBarberQueueReturn {
@@ -8,14 +11,14 @@ interface UseBarberQueueReturn {
   error: string | null;
   refreshQueue: () => void;
   removeUser: (userId: number, userName: string) => Promise<void>;
-  isRemoving: boolean;
+  removingUserId: number | null; // Track specific user being removed
 }
 
 export const useBarberQueue = (): UseBarberQueueReturn => {
   const [queue, setQueue] = useState<BarberQueueResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isRemoving, setIsRemoving] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState<number | null>(null); // Changed from isRemoving
 
   // Fetch queue data
   const fetchQueue = useCallback(async () => {
@@ -42,7 +45,7 @@ export const useBarberQueue = (): UseBarberQueueReturn => {
   // Remove user from queue
   const removeUser = useCallback(
     async (userId: number, userName: string) => {
-      setIsRemoving(true);
+      setRemovingUserId(userId); // Set specific user being removed
 
       try {
         const response = await barberService.removeUserFromQueue(userId);
@@ -54,7 +57,7 @@ export const useBarberQueue = (): UseBarberQueueReturn => {
         const errorMessage = error.message || "Failed to remove user";
         toast.error(errorMessage);
       } finally {
-        setIsRemoving(false);
+        setRemovingUserId(null); // Clear specific user being removed
       }
     },
     [fetchQueue]
@@ -80,6 +83,6 @@ export const useBarberQueue = (): UseBarberQueueReturn => {
     error,
     refreshQueue,
     removeUser,
-    isRemoving,
+    removingUserId, // Return specific user ID being removed
   };
 };

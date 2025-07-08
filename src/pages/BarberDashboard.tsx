@@ -6,8 +6,8 @@ import ThemeToggle from "../components/common/ThemeToggle";
 
 const BarberDashboard: React.FC = () => {
   const { barber, logout } = useAuth();
-  const { queue, isLoading, error, refreshQueue, removeUser, isRemoving } =
-    useBarberQueue();
+  const { queue, isLoading, error, refreshQueue, removeUser, removingUserId } =
+    useBarberQueue(); // Changed from isRemoving to removingUserId
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-50 transition-all duration-300">
@@ -40,8 +40,8 @@ const BarberDashboard: React.FC = () => {
           error={error}
           onRefresh={refreshQueue}
           onRemoveUser={removeUser}
-          isRemoving={isRemoving}
-        />
+            removingUserId={removingUserId} // Changed from isRemoving to removingUserId
+          />
       </div>
     </div>
   );

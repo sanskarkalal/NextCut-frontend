@@ -60,6 +60,17 @@ const UserDashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* Show queue indicator in header if user is in queue */}
+              {queueStatus?.inQueue && (
+                <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-primary-100 dark:bg-primary-900/30 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                    Position #{queueStatus.queuePosition} with{" "}
+                    {queueStatus.barber?.name}
+                  </span>
+                </div>
+              )}
+
               <ThemeToggle />
               <button
                 onClick={logout}
@@ -113,7 +124,7 @@ const UserDashboard: React.FC = () => {
             />
           )}
 
-          {/* Show message if user is in queue */}
+          {/* Show enhanced message if user is in queue */}
           {queueStatus?.inQueue && (
             <div className="card text-center">
               <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -134,9 +145,83 @@ const UserDashboard: React.FC = () => {
               <h3 className="text-lg font-medium text-title mb-2">
                 You're in {queueStatus.barber?.name}'s Queue!
               </h3>
-              <p className="text-muted">
-                You can leave the queue anytime using the button above.
+              <p className="text-muted mb-4">
+                You'll get real-time updates about your position. Notifications
+                are enabled to keep you informed even when you're not actively
+                using the app.
               </p>
+              <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Auto-updating</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 17h5l-5 5v-5zM4.5 5.653c0-1.426 1.67-2.16 2.598-1.14l15 16.5c.929 1.021.194 2.654-1.141 2.654H4.5c-.83 0-1.5-.67-1.5-1.5V5.653z"
+                    />
+                  </svg>
+                  <span>Push notifications</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Show helpful tips when not in queue */}
+          {!queueStatus?.inQueue && hasLocationPermission && location && (
+            <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700">
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    How NextCut Works
+                  </h3>
+                  <ul className="space-y-2 text-blue-800 dark:text-blue-200 text-sm">
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                      <span>Join any barber's queue with a single tap</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                      <span>Get real-time updates about your position</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                      <span>
+                        Receive notifications when it's almost your turn
+                      </span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                      <span>
+                        Skip the physical wait - do other things nearby!
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
         </div>

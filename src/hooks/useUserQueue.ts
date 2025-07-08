@@ -29,6 +29,7 @@ export const useUserQueue = (): UseUserQueueReturn => {
 
   // Ref to track previous queue position for notifications
   const previousPosition = useRef<number | null>(null);
+  const previousBarberName = useRef<string | null>(null);
 
   // Fetch current queue status from the backend
   const fetchQueueStatus = useCallback(async () => {
@@ -43,140 +44,198 @@ export const useUserQueue = (): UseUserQueueReturn => {
         const prevPosition = previousPosition.current;
         const barberName = status.barber?.name || "Unknown Barber";
 
+        // Store current barber name for notifications
+        previousBarberName.current = barberName;
+
         // Only notify if this isn't the first load and position changed
         if (prevPosition !== null && prevPosition !== currentPosition) {
           if (currentPosition < prevPosition) {
             // Position improved (moved up in queue)
-            queueNotifications.notifyPositionImproved(
-              currentPosition,
-              barberName
-            );
+            const positionsMoved = prevPosition - currentPosition;
+
+            if (currentPosition === 1) {
+              // User is now next in line
+              toast.success(
+                `🎉 You're next! ${barberName} will see you soon.`,
+                {
+                  duration: 6000,
+                  style: {
+                    background: "#10B981",
+                    color: "white",
+                  },
+                }
+              );
+
+              // Show notification if browser supports it
+              if (
+                queueNotifications.isSupported() &&
+                queueNotifications.isPermissionGranted()
+              ) {
+                queueNotifications.show(
+                  "You're Next!",
+                  `${barberName} will see you soon.`,
+                  "next"
+                );
+              }
+            } else {
+              // General position improvement
+              toast.success(
+                `📈 You moved up ${positionsMoved} position${
+                  positionsMoved > 1 ? "s" : ""
+                }! Now #${currentPosition} in ${barberName}'s queue.`,
+                {
+                  duration: 4000,
+                }
+              );
+
+              // Show notification
+              if (
+                queueNotifications.isSupported() &&
+                queueNotifications.isPermissionGranted()
+              ) {
+                queueNotifications.show(
+                  "Queue Update",
+                  `You moved up ${positionsMoved} position${
+                    positionsMoved > 1 ? "s" : ""
+                  }! Now #${currentPosition}`,
+                  "update"
+                );
+              }
+            }
           } else if (currentPosition > prevPosition) {
-            // Position got worse (someone joined ahead - this shouldn't normally happen)
-            queueNotifications.notifyPositionUpdate(
-              currentPosition,
-              barberName
+            // Position got worse (moved down in queue) - rare but possible
+            const positionsLost = currentPosition - prevPosition;
+            toast.error(
+              `📉 You moved down ${positionsLost} position${
+                positionsLost > 1 ? "s" : ""
+              } to #${currentPosition}. Someone may have joined ahead.`
             );
           }
         }
 
-        // Update previous position
+        // Update the previous position for next comparison
         previousPosition.current = currentPosition;
-      } else {
-        // Not in queue, reset previous position
+      } else if (!status.inQueue) {
+        // User left queue, reset tracking
         previousPosition.current = null;
+        previousBarberName.current = null;
       }
 
       setQueueStatus(status);
     } catch (error: any) {
-      // If user is not in queue or API error, set default status
-      setQueueStatus({
-        inQueue: false,
-        queuePosition: null,
-        barber: null,
-        enteredAt: null,
-      });
-
-      // Reset previous position when not in queue
-      previousPosition.current = null;
-
-      // Only show error if it's not a 404 (user not in queue)
-      if (!error.message.includes("404")) {
-        setError(error.message || "Failed to get queue status");
-      }
+      console.error("Error fetching queue status:", error);
+      setError(error.message || "Failed to fetch queue status");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Join queue
+  // Join a queue
   const joinQueue = useCallback(
     async (barberId: number, barberName: string) => {
-      setIsJoining(barberId); // Set specific barber ID being joined
+      setIsJoining(barberId);
       setError(null);
 
       try {
         const response = await userQueueService.joinQueue(barberId);
+        toast.success(`Successfully joined ${barberName}'s queue!`);
 
-        // Fetch the real queue status after joining to get position
-        await fetchQueueStatus();
-
-        // Show success notification with position info
-        const currentStatus = await userQueueService.getQueueStatus();
-        if (currentStatus.inQueue && currentStatus.queuePosition) {
-          queueNotifications.notifyJoinedQueue(
-            currentStatus.queuePosition,
-            barberName
-          );
-        } else {
-          toast.success(response.msg || `Joined ${barberName}'s queue!`);
+        // Request notification permission when joining queue
+        if (
+          queueNotifications.isSupported() &&
+          !queueNotifications.isPermissionGranted()
+        ) {
+          const permission = await queueNotifications.requestPermission();
+          if (permission === "granted") {
+            toast.success(
+              "✅ Notifications enabled! You'll get updates about your queue position."
+            );
+          }
         }
+
+        // Refresh status to get updated position
+        await fetchQueueStatus();
       } catch (error: any) {
         const errorMessage = error.message || "Failed to join queue";
-        toast.error(errorMessage);
         setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
-        setIsJoining(null); // Clear joining state
+        setIsJoining(null);
       }
     },
     [fetchQueueStatus]
   );
 
-  // Leave queue
+  // Leave current queue
   const leaveQueue = useCallback(async () => {
     setIsLeaving(true);
     setError(null);
 
     try {
       const response = await userQueueService.leaveQueue();
-      toast.success(response.msg || "Left queue successfully");
+      toast.success(response.msg || "Successfully left the queue");
 
-      // Clear queue status and previous position
-      setQueueStatus({
-        inQueue: false,
-        queuePosition: null,
-        barber: null,
-        enteredAt: null,
-      });
+      // Reset tracking when leaving
       previousPosition.current = null;
+      previousBarberName.current = null;
+
+      // Refresh status
+      await fetchQueueStatus();
     } catch (error: any) {
       const errorMessage = error.message || "Failed to leave queue";
-      toast.error(errorMessage);
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLeaving(false);
     }
-  }, []);
+  }, [fetchQueueStatus]);
 
-  // Refresh status - now actually fetches from backend
+  // Manual refresh
   const refreshStatus = useCallback(() => {
     fetchQueueStatus();
   }, [fetchQueueStatus]);
 
-  // Calculate estimated wait time (20 minutes per person ahead)
-  const getEstimatedWaitTime = useCallback((): number => {
+  // Calculate estimated wait time
+  const getEstimatedWaitTime = useCallback(() => {
     if (!queueStatus?.inQueue || !queueStatus.queuePosition) {
       return 0;
     }
-    // 20 minutes per person ahead (position 1 = no wait, position 2 = 20 min wait, etc.)
-    return Math.max(0, (queueStatus.queuePosition - 1) * 20);
+
+    // Assume 15 minutes per person ahead
+    return (queueStatus.queuePosition - 1) * 15;
   }, [queueStatus]);
 
-  // Load queue status when component mounts
+  // Initial fetch on mount
   useEffect(() => {
     fetchQueueStatus();
   }, [fetchQueueStatus]);
 
-  // Auto-refresh queue status every 30 seconds if user is in queue
+  // Enhanced polling: More frequent updates when in queue
   useEffect(() => {
-    if (queueStatus?.inQueue) {
-      const interval = setInterval(() => {
-        fetchQueueStatus();
-      }, 30000); // 30 seconds
+    let interval: NodeJS.Timeout;
 
-      return () => clearInterval(interval);
+    if (queueStatus?.inQueue) {
+      // Poll every 10 seconds when in queue
+      interval = setInterval(() => {
+        fetchQueueStatus();
+      }, 10000);
+    } else {
+      // Poll every 30 seconds when not in queue
+      interval = setInterval(() => {
+        fetchQueueStatus();
+      }, 30000);
     }
-  }, [queueStatus?.inQueue, fetchQueueStatus]);
+
+    return () => clearInterval(interval);
+  }, [fetchQueueStatus, queueStatus?.inQueue]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      previousPosition.current = null;
+      previousBarberName.current = null;
+    };
+  }, []);
 
   return {
     queueStatus,
