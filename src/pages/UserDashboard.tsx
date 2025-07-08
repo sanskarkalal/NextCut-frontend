@@ -1,4 +1,5 @@
-import React from "react";
+// src/pages/UserDashboard.tsx - Corrected version
+import React, { useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLocation } from "../hooks/useLocation";
 import { useUserQueue } from "../hooks/useUserQueue";
@@ -11,7 +12,7 @@ import { type Barber } from "../types";
 const UserDashboard: React.FC = () => {
   const { user, logout } = useAuth();
 
-  // Location hook
+  // Location hook with enhanced auto-refresh
   const {
     location,
     locationError,
@@ -23,9 +24,27 @@ const UserDashboard: React.FC = () => {
     requestLocation,
     refreshBarbers,
     clearLocationError,
+    forceRefreshBarbers,
   } = useLocation();
 
-  // Queue hook - now returns isJoining as number | null
+  // Callback for when user exits queue
+  const handleQueueExit = useCallback(async () => {
+    // Force refresh barber list with updated queue lengths
+    await forceRefreshBarbers();
+
+    // Scroll to barber list after a short delay
+    setTimeout(() => {
+      const barberListElement = document.getElementById("barber-list");
+      if (barberListElement) {
+        barberListElement.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 1000);
+  }, [forceRefreshBarbers]);
+
+  // Queue hook with enhanced navigation - pass the callback
   const {
     queueStatus,
     isLoading: isQueueLoading,
@@ -35,7 +54,7 @@ const UserDashboard: React.FC = () => {
     leaveQueue,
     refreshStatus,
     getEstimatedWaitTime,
-  } = useUserQueue();
+  } = useUserQueue(handleQueueExit);
 
   const handleJoinQueue = async (barber: Barber) => {
     try {
@@ -105,23 +124,27 @@ const UserDashboard: React.FC = () => {
               isLoading={isLoadingLocation}
               error={locationError}
               onClearError={clearLocationError}
-              locationError={null}
-              isLoadingLocation={false}
+              locationError={locationError}
+              isLoadingLocation={isLoadingLocation}
             />
           )}
 
           {/* Nearby Barbers - Show if user has location and is not in queue */}
           {hasLocationPermission && location && !queueStatus?.inQueue && (
-            <NearbyBarbers
-              barbers={nearbyBarbers}
-              isLoading={isLoadingBarbers}
-              error={barbersError}
-              onRefresh={refreshBarbers}
-              onJoinQueue={handleJoinQueue}
-              isJoining={isJoining} // Now passes barberId | null
-              userLocation={location}
-              userInQueue={false}
-            />
+            <div id="barber-list">
+              {" "}
+              {/* Add ID for scroll targeting */}
+              <NearbyBarbers
+                barbers={nearbyBarbers}
+                isLoading={isLoadingBarbers}
+                error={barbersError}
+                onRefresh={forceRefreshBarbers}
+                onJoinQueue={handleJoinQueue}
+                isJoining={isJoining}
+                userLocation={location}
+                userInQueue={false}
+              />
+            </div>
           )}
 
           {/* Show enhanced message if user is in queue */}

@@ -1,3 +1,4 @@
+// src/hooks/useUserQueue.ts - Corrected version
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   userQueueService,
@@ -16,20 +17,24 @@ interface UseUserQueueReturn {
   leaveQueue: () => Promise<void>;
   refreshStatus: () => void;
   getEstimatedWaitTime: () => number; // in minutes
+  onQueueExit: () => void; // callback for when user exits queue
 }
 
-export const useUserQueue = (): UseUserQueueReturn => {
+export const useUserQueue = (
+  onQueueExit?: () => void // callback prop for refreshing barber list
+): UseUserQueueReturn => {
   const [queueStatus, setQueueStatus] = useState<QueueStatusResponse | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [isJoining, setIsJoining] = useState<number | null>(null); // barberId being joined
+  const [isJoining, setIsJoining] = useState<number | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Ref to track previous queue position for notifications
   const previousPosition = useRef<number | null>(null);
   const previousBarberName = useRef<string | null>(null);
+  const wasInQueue = useRef<boolean>(false); // Track if user was previously in queue
 
   // Fetch current queue status from the backend
   const fetchQueueStatus = useCallback(async () => {
@@ -120,10 +125,52 @@ export const useUserQueue = (): UseUserQueueReturn => {
 
         // Update the previous position for next comparison
         previousPosition.current = currentPosition;
+        wasInQueue.current = true;
       } else if (!status.inQueue) {
-        // User left queue, reset tracking
-        previousPosition.current = null;
-        previousBarberName.current = null;
+        // User left queue logic
+        if (wasInQueue.current) {
+          // User was in queue but now isn't - they were served or left
+          toast.success(
+            `🎉 You've left the queue! ${
+              previousBarberName.current
+                ? `Thanks for visiting ${previousBarberName.current}!`
+                : "Hope you had a great experience!"
+            }`,
+            {
+              duration: 6000,
+              style: {
+                background: "#10B981",
+                color: "white",
+                fontSize: "16px",
+                fontWeight: "bold",
+              },
+            }
+          );
+
+          // Show notification for being served
+          if (
+            queueNotifications.isSupported() &&
+            queueNotifications.isPermissionGranted()
+          ) {
+            queueNotifications.show(
+              "🎉 Your Turn!",
+              `${
+                previousBarberName.current || "The barber"
+              } is ready to serve you!`,
+              "removed"
+            );
+          }
+
+          // Reset tracking
+          previousPosition.current = null;
+          previousBarberName.current = null;
+          wasInQueue.current = false;
+
+          // Trigger callback to refresh barber list
+          if (onQueueExit) {
+            onQueueExit();
+          }
+        }
       }
 
       setQueueStatus(status);
@@ -133,7 +180,7 @@ export const useUserQueue = (): UseUserQueueReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [onQueueExit]);
 
   // Join a queue
   const joinQueue = useCallback(
@@ -142,7 +189,7 @@ export const useUserQueue = (): UseUserQueueReturn => {
       setError(null);
 
       try {
-        const response = await userQueueService.joinQueue(barberId);
+        await userQueueService.joinQueue(barberId);
         toast.success(`Successfully joined ${barberName}'s queue!`);
 
         // Request notification permission when joining queue
@@ -180,15 +227,21 @@ export const useUserQueue = (): UseUserQueueReturn => {
     setError(null);
 
     try {
-      const response = await userQueueService.leaveQueue();
-      toast.success(response.msg || "Successfully left the queue");
+      await userQueueService.leaveQueue();
+      toast.success("Successfully left the queue");
 
       // Reset tracking when leaving
       previousPosition.current = null;
       previousBarberName.current = null;
+      wasInQueue.current = false;
 
       // Refresh status
       await fetchQueueStatus();
+
+      // Trigger callback to refresh barber list after leaving
+      if (onQueueExit) {
+        onQueueExit();
+      }
     } catch (error: any) {
       const errorMessage = error.message || "Failed to leave queue";
       setError(errorMessage);
@@ -196,7 +249,7 @@ export const useUserQueue = (): UseUserQueueReturn => {
     } finally {
       setIsLeaving(false);
     }
-  }, [fetchQueueStatus]);
+  }, [fetchQueueStatus, onQueueExit]);
 
   // Manual refresh
   const refreshStatus = useCallback(() => {
@@ -212,6 +265,13 @@ export const useUserQueue = (): UseUserQueueReturn => {
     // Assume 15 minutes per person ahead
     return (queueStatus.queuePosition - 1) * 15;
   }, [queueStatus]);
+
+  // Handle queue exit callback
+  const handleQueueExit = useCallback(() => {
+    if (onQueueExit) {
+      onQueueExit();
+    }
+  }, [onQueueExit]);
 
   // Initial fetch on mount
   useEffect(() => {
@@ -242,6 +302,7 @@ export const useUserQueue = (): UseUserQueueReturn => {
     return () => {
       previousPosition.current = null;
       previousBarberName.current = null;
+      wasInQueue.current = false;
     };
   }, []);
 
@@ -255,5 +316,6 @@ export const useUserQueue = (): UseUserQueueReturn => {
     leaveQueue,
     refreshStatus,
     getEstimatedWaitTime,
+    onQueueExit: handleQueueExit,
   };
 };
