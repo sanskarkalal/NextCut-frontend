@@ -111,7 +111,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
             htmlFor="name"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Full Name
+            {role === "USER" ? "Full Name" : "Shop Name"}
           </label>
           <input
             type="text"
