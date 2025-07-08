@@ -7,9 +7,9 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
 
-  // Production fallback - YOUR ACTUAL RAILWAY URL
+  // Production fallback - YOUR NEW RENDER URL
   if (import.meta.env.PROD) {
-    return "https://nextcut-backend-production.up.railway.app";
+    return "https://nextcut-backend-v2.onrender.com";
   }
 
   // Development fallback
