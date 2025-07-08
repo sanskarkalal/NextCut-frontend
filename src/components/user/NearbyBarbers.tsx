@@ -29,7 +29,7 @@ const NearbyBarbers: React.FC<NearbyBarbersProps> = ({
       <div className="card">
         <div className="text-center py-8">
           <LoadingSpinner size="lg" />
-          <p className="text-gray-600 mt-4">Finding nearby barbers...</p>
+          <p className="text-muted mt-4">Finding nearby barbers...</p>
         </div>
       </div>
     );
@@ -39,9 +39,9 @@ const NearbyBarbers: React.FC<NearbyBarbersProps> = ({
     return (
       <div className="card">
         <div className="text-center py-8">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-8 h-8 text-red-600"
+              className="w-8 h-8 text-red-600 dark:text-red-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -54,10 +54,10 @@ const NearbyBarbers: React.FC<NearbyBarbersProps> = ({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-title mb-2">
             Error Loading Barbers
           </h3>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-muted mb-4">{error}</p>
           <button onClick={onRefresh} className="btn-primary">
             Try Again
           </button>
@@ -70,9 +70,9 @@ const NearbyBarbers: React.FC<NearbyBarbersProps> = ({
     return (
       <div className="card">
         <div className="text-center py-8">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-dark-200 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-8 h-8 text-gray-400"
+              className="w-8 h-8 text-gray-400 dark:text-dark-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -91,10 +91,10 @@ const NearbyBarbers: React.FC<NearbyBarbersProps> = ({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-title mb-2">
             No Barbers Found
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted mb-4">
             No barbers found within 5km of your location. Try expanding your
             search area or check back later.
           </p>
@@ -109,7 +109,7 @@ const NearbyBarbers: React.FC<NearbyBarbersProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-title">
           Nearby Barbers ({barbers.length})
         </h2>
         <button
@@ -173,13 +173,22 @@ const BarberCard: React.FC<BarberCardProps> = ({
       )
     : barber.distanceKm;
 
+  // Format estimated wait time
+  const formatWaitTime = (minutes: number) => {
+    if (minutes === 0) return "No wait";
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
   return (
     <div className="card card-hover">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center">
             <svg
-              className="w-6 h-6 text-primary-600"
+              className="w-6 h-6 text-primary-600 dark:text-primary-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -193,13 +202,13 @@ const BarberCard: React.FC<BarberCardProps> = ({
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{barber.name}</h3>
-            <p className="text-sm text-gray-600">@{barber.username}</p>
+            <h3 className="font-semibold text-title">{barber.name}</h3>
+            <p className="text-sm text-subtitle">@{barber.username}</p>
           </div>
         </div>
 
         <div className="text-right">
-          <div className="flex items-center text-sm text-gray-500">
+          <div className="flex items-center text-sm text-muted">
             <svg
               className="w-4 h-4 mr-1"
               fill="none"
@@ -226,15 +235,30 @@ const BarberCard: React.FC<BarberCardProps> = ({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Status:</span>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            Available
+          <span className="text-muted">Status:</span>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              (barber.queueLength || 0) === 0
+                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            }`}
+          >
+            {(barber.queueLength || 0) === 0 ? "Available" : "Busy"}
           </span>
         </div>
 
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Queue:</span>
-          <span className="text-gray-900 font-medium">0 waiting</span>
+          <span className="text-muted">Queue:</span>
+          <div className="text-right">
+            <div className="text-body font-medium">
+              {barber.queueLength || 0} waiting
+            </div>
+            {(barber.queueLength || 0) > 0 && (
+              <div className="text-xs text-muted">
+                ~{formatWaitTime(barber.estimatedWaitTime || 0)} wait
+              </div>
+            )}
+          </div>
         </div>
 
         <button
@@ -250,7 +274,14 @@ const BarberCard: React.FC<BarberCardProps> = ({
           ) : userInQueue ? (
             "Already in Queue"
           ) : (
-            "Join Queue"
+            <>
+              Join Queue
+              {(barber.queueLength || 0) > 0 && (
+                <span className="ml-2 text-xs opacity-75">
+                  (#{(barber.queueLength || 0) + 1})
+                </span>
+              )}
+            </>
           )}
         </button>
       </div>

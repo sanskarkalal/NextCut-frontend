@@ -2,11 +2,14 @@ import React from "react";
 import type { LocationError } from "../../services/location";
 import LoadingSpinner from "../common/LoadingSpinner";
 
-interface LocationPickerProps {
+export interface LocationPickerProps {
+  locationError: LocationError | null;
+  isLoadingLocation: boolean;
   isLoading: boolean;
   error: LocationError | null;
   onRequestLocation: () => void;
   onClearError: () => void;
+  // ...other props...
 }
 
 const LocationPicker: React.FC<LocationPickerProps> = ({

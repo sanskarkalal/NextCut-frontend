@@ -6,7 +6,7 @@ import LocationPicker from "../components/user/LocationPicker";
 import NearbyBarbers from "../components/user/NearbyBarbers";
 import QueueStatus from "../components/user/QueueStatus";
 import ThemeToggle from "../components/common/ThemeToggle";
-import {type Barber } from "../types";
+import { type Barber } from "../types";
 
 const UserDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -28,6 +28,7 @@ const UserDashboard: React.FC = () => {
   // Queue hook
   const {
     queueStatus,
+    isLoading: isQueueLoading,
     isJoining,
     isLeaving,
     joinQueue,
@@ -39,6 +40,7 @@ const UserDashboard: React.FC = () => {
   const handleJoinQueue = async (barber: Barber) => {
     try {
       await joinQueue(barber.id, barber.name);
+      // Queue status will be automatically refreshed after joining
     } catch (error) {
       console.error("Error joining queue:", error);
     }
@@ -75,19 +77,45 @@ const UserDashboard: React.FC = () => {
             <QueueStatus
               queueStatus={queueStatus}
               estimatedWaitTime={getEstimatedWaitTime()}
-              isLoading={false}
+              isLoading={isQueueLoading}
               isLeaving={isLeaving}
               onLeaveQueue={leaveQueue}
               onRefresh={refreshStatus}
             />
           )}
 
-          {/* Location Status */}
-          {location && (
-            <div className="status-success rounded-lg p-4">
-              <div className="flex items-center">
+          {/* Location Picker - Show if no location or user is not in queue */}
+          {(!hasLocationPermission || !location) && !queueStatus?.inQueue && (
+            <LocationPicker
+              locationError={locationError}
+              isLoadingLocation={isLoadingLocation}
+              onRequestLocation={requestLocation}
+              onClearError={clearLocationError}
+              isLoading={false}
+              error={null}
+            />
+          )}
+
+          {/* Nearby Barbers - Show if user has location and is not in queue */}
+          {hasLocationPermission && location && !queueStatus?.inQueue && (
+            <NearbyBarbers
+              barbers={nearbyBarbers}
+              isLoading={isLoadingBarbers}
+              error={barbersError}
+              onRefresh={refreshBarbers}
+              onJoinQueue={handleJoinQueue}
+              isJoining={isJoining}
+              userLocation={location}
+              userInQueue={false}
+            />
+          )}
+
+          {/* Show message if user is in queue */}
+          {queueStatus?.inQueue && (
+            <div className="card text-center">
+              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
-                  className="w-5 h-5 text-green-600 dark:text-emerald-400 mr-2"
+                  className="w-8 h-8 text-primary-600 dark:text-primary-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -96,42 +124,17 @@ const UserDashboard: React.FC = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="font-medium">
-                  Location enabled: {location.lat.toFixed(6)},{" "}
-                  {location.long.toFixed(6)}
-                </span>
               </div>
+              <h3 className="text-lg font-medium text-title mb-2">
+                You're in {queueStatus.barber?.name}'s Queue!
+              </h3>
+              <p className="text-muted">
+                You can leave the queue anytime using the button above.
+              </p>
             </div>
-          )}
-
-          {/* Location Permission or Nearby Barbers */}
-          {!hasLocationPermission || locationError ? (
-            <LocationPicker
-              isLoading={isLoadingLocation}
-              error={locationError}
-              onRequestLocation={requestLocation}
-              onClearError={clearLocationError}
-            />
-          ) : (
-            <NearbyBarbers
-              barbers={nearbyBarbers}
-              isLoading={isLoadingBarbers}
-              error={barbersError}
-              onRefresh={refreshBarbers}
-              onJoinQueue={handleJoinQueue}
-              userLocation={location}
-              isJoining={isJoining}
-              userInQueue={queueStatus?.inQueue || false}
-            />
           )}
         </div>
       </div>

@@ -13,6 +13,8 @@ export interface Barber {
   lat: number;
   long: number;
   distanceKm?: number;
+  queueLength?: number; // ADD THIS - number of people in queue
+  estimatedWaitTime?: number; // ADD THIS - in minutes
 }
 
 export interface QueueEntry {

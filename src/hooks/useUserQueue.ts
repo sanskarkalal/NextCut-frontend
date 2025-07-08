@@ -26,7 +26,31 @@ export const useUserQueue = (): UseUserQueueReturn => {
   const [isLeaving, setIsLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // For now, we'll start with a simple implementation
+  // Fetch current queue status from the backend
+  const fetchQueueStatus = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const status = await userQueueService.getQueueStatus();
+      setQueueStatus(status);
+    } catch (error: any) {
+      // If user is not in queue or API error, set default status
+      setQueueStatus({
+        inQueue: false,
+        queuePosition: null,
+        barber: null,
+        enteredAt: null,
+      });
+
+      // Only show error if it's not a 404 (user not in queue)
+      if (!error.message.includes("404")) {
+        setError(error.message || "Failed to get queue status");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Join queue
   const joinQueue = useCallback(
     async (barberId: number, barberName: string) => {
@@ -37,13 +61,8 @@ export const useUserQueue = (): UseUserQueueReturn => {
         const response = await userQueueService.joinQueue(barberId);
         toast.success(response.msg || `Joined ${barberName}'s queue!`);
 
-        // Set basic queue status
-        setQueueStatus({
-          inQueue: true,
-          queuePosition: 1,
-          barber: { id: barberId, name: barberName },
-          enteredAt: new Date().toISOString(),
-        });
+        // Fetch the real queue status after joining
+        await fetchQueueStatus();
       } catch (error: any) {
         const errorMessage = error.message || "Failed to join queue";
         toast.error(errorMessage);
@@ -52,7 +71,7 @@ export const useUserQueue = (): UseUserQueueReturn => {
         setIsJoining(false);
       }
     },
-    []
+    [fetchQueueStatus]
   );
 
   // Leave queue
@@ -80,11 +99,10 @@ export const useUserQueue = (): UseUserQueueReturn => {
     }
   }, []);
 
-  // Refresh status (placeholder for now)
+  // Refresh status - now actually fetches from backend
   const refreshStatus = useCallback(() => {
-    // For now, we'll just log that refresh was called
-    console.log("Refresh status called");
-  }, []);
+    fetchQueueStatus();
+  }, [fetchQueueStatus]);
 
   // Calculate estimated wait time (20 minutes per person ahead)
   const getEstimatedWaitTime = useCallback((): number => {
@@ -95,15 +113,21 @@ export const useUserQueue = (): UseUserQueueReturn => {
     return Math.max(0, (queueStatus.queuePosition - 1) * 20);
   }, [queueStatus]);
 
-  // Initialize with not in queue
+  // Load queue status when component mounts
   useEffect(() => {
-    setQueueStatus({
-      inQueue: false,
-      queuePosition: null,
-      barber: null,
-      enteredAt: null,
-    });
-  }, []);
+    fetchQueueStatus();
+  }, [fetchQueueStatus]);
+
+  // Auto-refresh queue status every 30 seconds if user is in queue
+  useEffect(() => {
+    if (queueStatus?.inQueue) {
+      const interval = setInterval(() => {
+        fetchQueueStatus();
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [queueStatus?.inQueue, fetchQueueStatus]);
 
   return {
     queueStatus,
