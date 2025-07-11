@@ -235,10 +235,10 @@ const HomePage: React.FC = () => {
                   <p className="text-blue-700 dark:text-blue-300 text-sm">
                     Email{" "}
                     <a
-                      href="mailto:barbers@nextcut.app"
+                      href="mailto:nextcut.barber.register@gmail.com"
                       className="font-bold underline hover:text-blue-800"
                     >
-                      barbers@nextcut.app
+                      nextcut.barber.register@gmail.com
                     </a>{" "}
                     with your shop details and business license. We'll verify
                     and send you a registration link.
@@ -323,10 +323,10 @@ const HomePage: React.FC = () => {
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 📧 Email us at{" "}
                 <a
-                  href="mailto:barbers@nextcut.app"
+                  href="mailto:nextcut.barber.register@gmail.com"
                   className="font-bold underline hover:text-blue-800 dark:hover:text-blue-200"
                 >
-                  barbers@nextcut.app
+                  nextcut.barber.register@gmail.com
                 </a>{" "}
                 with your shop details to get started.
               </p>

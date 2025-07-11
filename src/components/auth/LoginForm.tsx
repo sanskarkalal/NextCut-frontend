@@ -156,7 +156,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ role, onSwitchToSignup }) => {
           <p className="text-gray-600 text-sm">
             Need to register your barber shop?{" "}
             <a
-              href="mailto:barbers@nextcut.app"
+              href="mailto:nextcut.barber.register@gmail.com"
               className="text-primary-600 hover:text-primary-700 font-medium underline"
             >
               Email us for registration
