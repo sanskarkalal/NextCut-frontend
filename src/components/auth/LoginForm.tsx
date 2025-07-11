@@ -141,16 +141,28 @@ const LoginForm: React.FC<LoginFormProps> = ({ role, onSwitchToSignup }) => {
       )}
 
       <div className="mt-6 text-center">
-        <p className="text-gray-600">
-          Don't have an account?{" "}
-          <button
-            onClick={onSwitchToSignup}
-            className="text-primary-600 hover:text-primary-700 font-medium"
-            disabled={isDisabled}
-          >
-            Sign Up
-          </button>
-        </p>
+        {role === "USER" ? (
+          <p className="text-gray-600">
+            Don't have an account?{" "}
+            <button
+              onClick={onSwitchToSignup}
+              className="text-primary-600 hover:text-primary-700 font-medium"
+              disabled={isDisabled}
+            >
+              Sign Up
+            </button>
+          </p>
+        ) : (
+          <p className="text-gray-600 text-sm">
+            Need to register your barber shop?{" "}
+            <a
+              href="mailto:barbers@nextcut.app"
+              className="text-primary-600 hover:text-primary-700 font-medium underline"
+            >
+              Email us for registration
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );
