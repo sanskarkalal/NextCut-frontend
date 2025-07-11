@@ -101,6 +101,7 @@ class ApiService {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    console.log("📤 POST Request to:", endpoint, "with data:", data);
     return this.request<T>(endpoint, {
       method: "POST",
       body: data ? JSON.stringify(data) : undefined,

@@ -98,7 +98,7 @@ export const userQueueService = {
   },
 
   // Get nearby barbers with updated queue info
-  async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
+  async getNearbyBarbers(lat: number, long: number, radius: number = 4) {
     try {
       console.log("🔍 Fetching nearby barbers...", { lat, long, radius });
 

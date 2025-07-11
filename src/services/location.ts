@@ -1,3 +1,5 @@
+import api from "./api";
+
 // src/services/location.ts
 export interface LocationCoords {
   lat: number;
@@ -142,46 +144,33 @@ export class LocationService {
   }
 
   async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
-    // This would call your backend API
     try {
-      const response = await fetch("/user/barbers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ lat, long, radius }),
+      console.log("📡 Fetching nearby barbers via ApiService...");
+
+      const response = await api.post<{
+        msg?: string;
+        barbers: any[];
+      }>("/user/barbers", {
+        lat,
+        long,
+        radius,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch nearby barbers");
-      }
+      console.log("✅ Nearby barbers fetched:", response.data);
 
-      const data = await response.json();
-      return data.barbers || [];
-    } catch (error) {
-      console.error("Error fetching nearby barbers:", error);
-      throw error;
+      return response.data.barbers || [];
+    } catch (error: any) {
+      console.error("❌ Error fetching nearby barbers:", error);
+
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.msg ||
+        error.message ||
+        "Failed to fetch nearby barbers";
+
+      throw new Error(errorMessage);
     }
-  }
-
-  async checkPermission(): Promise<PermissionState> {
-    if (!("permissions" in navigator)) {
-      // Fallback for browsers that don't support permissions API
-      try {
-        await this.getCurrentLocation();
-        return "granted";
-      } catch {
-        return "denied";
-      }
-    }
-
-    const permission = await navigator.permissions.query({
-      name: "geolocation",
-    });
-    return permission.state;
   }
 }
-
 // Export singleton instance
 export const locationService = LocationService.getInstance();
