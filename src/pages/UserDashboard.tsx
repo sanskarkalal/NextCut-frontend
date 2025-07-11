@@ -4,7 +4,7 @@ import { useLocation } from "../hooks/useLocation";
 import { useUserQueue } from "../hooks/useUserQueue";
 import LocationPicker from "../components/user/LocationPicker";
 import NearbyBarbers from "../components/user/NearbyBarbers";
-import QueueStatus from "../components/user/QueueStatus";
+import QueueStatusComponent from "../components/user/QueueStatus";
 import ServiceSelection from "../components/user/ServiceSelection";
 import ThemeToggle from "../components/common/ThemeToggle";
 import type { Barber, ServiceType } from "../types";
@@ -111,7 +111,7 @@ const UserDashboard: React.FC = () => {
           {/* Queue Status Section */}
           {queueStatus?.inQueue && (
             <div className="mb-8">
-              <QueueStatus
+              <QueueStatusComponent
                 queueStatus={queueStatus}
                 isLoading={isQueueLoading}
                 isLeaving={isLeaving}
@@ -159,10 +159,7 @@ const UserDashboard: React.FC = () => {
                         isLoading={isLoadingLocation}
                         error={locationError}
                         onRequestLocation={requestLocation}
-                        onClearError={clearLocationError}
-                        locationError={null}
-                        isLoadingLocation={false}
-                      />
+                        onClearError={clearLocationError} locationError={null} isLoadingLocation={false}                      />
                     </div>
                   </div>
                 </div>

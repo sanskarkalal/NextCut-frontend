@@ -1,9 +1,10 @@
+// src/services/barberService.ts
 import api from "./api";
 
 export interface BarberQueueResponse {
   barberId: number;
   queueLength: number;
-  queue: {
+  queue: Array<{
     position: number;
     queueId: number;
     user: {
@@ -11,18 +12,13 @@ export interface BarberQueueResponse {
       name: string;
     };
     enteredAt: string;
-  }[];
+    service?: string;
+  }>;
 }
 
 export interface RemoveUserResponse {
   msg: string;
-  data: {
-    removedUser: {
-      id: number;
-      name: string;
-    };
-    removedAt: string;
-  };
+  data?: any;
 }
 
 export const barberService = {
@@ -32,8 +28,12 @@ export const barberService = {
       const response = await api.get<BarberQueueResponse>("/barber/queue");
       return response.data;
     } catch (error: any) {
-      console.error("Error fetching barber queue:", error);
-      throw new Error(error.response?.data?.error || "Failed to fetch queue");
+      console.error("Error getting barber queue:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.msg ||
+        "Failed to get queue";
+      throw new Error(errorMessage);
     }
   },
 
@@ -49,11 +49,11 @@ export const barberService = {
       return response.data;
     } catch (error: any) {
       console.error("Error removing user from queue:", error);
-      throw new Error(
+      const errorMessage =
         error.response?.data?.error ||
-          error.response?.data?.msg ||
-          "Failed to remove user from queue"
-      );
+        error.response?.data?.msg ||
+        "Failed to remove user from queue";
+      throw new Error(errorMessage);
     }
   },
 };

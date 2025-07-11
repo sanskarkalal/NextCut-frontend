@@ -94,8 +94,8 @@ export interface QueueStatus {
   barber: {
     id: number;
     name: string;
-    lat: number;
-    long: number;
+    lat?: number; // Made optional to match API
+    long?: number; // Made optional to match API
   } | null;
   enteredAt: string | null;
   service: ServiceType | null;

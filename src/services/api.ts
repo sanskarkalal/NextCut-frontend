@@ -1,90 +1,113 @@
-import axios from "axios";
+// src/services/api.ts
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// Environment-based API URL configuration
-const getApiBaseUrl = () => {
-  // Check if we have a custom API URL from environment variables
-  if (import.meta.env.VITE_API_URL) {
-    console.log("Using VITE_API_URL:", import.meta.env.VITE_API_URL);
-    return import.meta.env.VITE_API_URL;
+interface ApiResponse<T = any> {
+  data: T;
+  status: number;
+  statusText: string;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+      msg?: string;
+    };
+    status?: number;
+  };
+  message?: string;
+}
+
+class ApiService {
+  private baseURL: string;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
   }
 
-  // Production fallback - YOUR NEW RENDER URL
-  if (import.meta.env.PROD) {
-    console.log("Using production fallback: Render URL");
-    return "https://nextcut-backend-v2.onrender.com";
-  }
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
 
-  // Development fallback
-  console.log("Using development fallback: localhost");
-  return "http://localhost:3000";
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
-console.log("🚀 API Base URL:", API_BASE_URL); // For debugging
-
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 15000, // 15 second timeout for production
-  withCredentials: false, // Set to true if you need cookies
-});
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
+    // Get token from localStorage
     const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
 
-    // Add request logging in development
-    if (import.meta.env.DEV) {
-      console.log(
-        `Making ${config.method?.toUpperCase()} request to:`,
-        `${API_BASE_URL}${config.url}`
-      );
-    }
+    const config: RequestInit = {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+      ...options,
+    };
 
-    return config;
-  },
-  (error) => {
-    console.error("Request interceptor error:", error);
-    return Promise.reject(error);
-  }
-);
+    try {
+      const response = await fetch(url, config);
 
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => {
-    // Log successful responses in development
-    if (import.meta.env.DEV) {
-      console.log(`✅ Response from ${response.config.url}:`, response.status);
-    }
-    return response;
-  },
-  (error) => {
-    console.error("❌ API Error:", error.response?.data || error.message);
-    console.error("❌ Request URL was:", error.config?.url);
-    console.error("❌ Full URL was:", `${API_BASE_URL}${error.config?.url}`);
-
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("barber");
-      localStorage.removeItem("role");
-
-      // Only redirect if we're not already on the home page
-      if (window.location.pathname !== "/") {
-        window.location.href = "/";
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
       }
+
+      if (!response.ok) {
+        const error: ApiError = {
+          response: {
+            data,
+            status: response.status,
+          },
+          message: data?.error || data?.msg || response.statusText,
+        };
+        throw error;
+      }
+
+      return {
+        data,
+        status: response.status,
+        statusText: response.statusText,
+      };
+    } catch (error) {
+      // Re-throw ApiError as-is, wrap other errors
+      if ((error as ApiError).response) {
+        throw error;
+      }
+
+      throw {
+        message: (error as Error).message || "Network error",
+        response: {
+          status: 0,
+          data: { error: "Network error" },
+        },
+      } as ApiError;
     }
-
-    return Promise.reject(error);
   }
-);
 
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "GET" });
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "DELETE" });
+  }
+}
+
+// Export singleton instance
+const api = new ApiService(API_BASE_URL);
 export default api;

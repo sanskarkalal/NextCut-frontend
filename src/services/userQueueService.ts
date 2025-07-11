@@ -6,7 +6,10 @@ export const userQueueService = {
   // Join a barber's queue with service selection
   async joinQueue(barberId: number, service: ServiceType) {
     try {
-      const response = await api.post("/user/joinqueue", {
+      const response = await api.post<{
+        msg: string;
+        queue: any;
+      }>("/user/joinqueue", {
         barberId,
         service,
       });
@@ -24,7 +27,10 @@ export const userQueueService = {
   // Leave current queue
   async leaveQueue() {
     try {
-      const response = await api.post("/user/leavequeue");
+      const response = await api.post<{
+        msg: string;
+        data?: any;
+      }>("/user/leavequeue");
       return response.data;
     } catch (error: any) {
       console.error("Error leaving queue:", error);
@@ -39,7 +45,21 @@ export const userQueueService = {
   // Get current queue status with service info
   async getQueueStatus() {
     try {
-      const response = await api.get("/user/queue-status");
+      const response = await api.get<{
+        queueStatus: {
+          inQueue: boolean;
+          queuePosition: number | null;
+          barber: {
+            id: number;
+            name: string;
+            lat?: number;
+            long?: number;
+          } | null;
+          enteredAt: string | null;
+          service: ServiceType | null;
+          estimatedWaitTime: number | null;
+        };
+      }>("/user/queue-status");
       return response.data.queueStatus;
     } catch (error: any) {
       // If endpoint doesn't exist yet, return default status
@@ -61,7 +81,9 @@ export const userQueueService = {
   // Get nearby barbers with updated queue info
   async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
     try {
-      const response = await api.post("/user/barbers", {
+      const response = await api.post<{
+        barbers: any[];
+      }>("/user/barbers", {
         lat,
         long,
         radius,
