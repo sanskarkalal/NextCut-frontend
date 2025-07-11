@@ -1,4 +1,4 @@
-// src/services/api.ts
+// src/services/api.ts - COMPLETE FIXED VERSION
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface ApiResponse<T = any> {
@@ -23,6 +23,7 @@ class ApiService {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+    console.log("🌐 API Service initialized with baseURL:", baseURL);
   }
 
   private async request<T>(
@@ -30,6 +31,11 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
+    console.log("📤 API Request:", {
+      url,
+      method: options.method || "GET",
+      hasBody: !!options.body,
+    });
 
     // Get token from localStorage
     const token = localStorage.getItem("token");
@@ -45,15 +51,18 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
+      console.log("📥 API Response status:", response.status);
 
       let data;
       try {
         data = await response.json();
+        console.log("📦 API Response data:", data);
       } catch {
         data = null;
       }
 
       if (!response.ok) {
+        console.error("❌ API Error:", { status: response.status, data });
         const error: ApiError = {
           response: {
             data,
@@ -70,6 +79,8 @@ class ApiService {
         statusText: response.statusText,
       };
     } catch (error) {
+      console.error("🚨 Network Error:", error);
+
       // Re-throw ApiError as-is, wrap other errors
       if ((error as ApiError).response) {
         throw error;

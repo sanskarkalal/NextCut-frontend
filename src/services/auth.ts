@@ -1,4 +1,4 @@
-// src/services/auth.ts
+// src/services/auth.ts - COMPLETE FIXED VERSION
 import api from "./api";
 import type { AuthResponse, SignupData, LoginData, UserRole } from "../types";
 
@@ -8,6 +8,12 @@ export const authService = {
     password?: string,
     role?: UserRole
   ): Promise<AuthResponse> {
+    console.log("🚀 Auth Service Login:", {
+      phoneOrUsername,
+      role,
+      hasPassword: !!password,
+    });
+
     // Auto-detect role if not provided
     const detectedRole = role || (password ? "BARBER" : "USER");
 
@@ -24,11 +30,26 @@ export const authService = {
       requestData = { username: phoneOrUsername, password };
     }
 
+    console.log("📤 Login Request:", {
+      endpoint,
+      requestData: {
+        ...requestData,
+        password: requestData.password ? "***" : undefined,
+      },
+    });
+
     const response = await api.post<AuthResponse>(endpoint, requestData);
+
+    console.log("📥 Login Response:", response.data);
     return response.data;
   },
 
   async signup(data: SignupData, role: UserRole): Promise<AuthResponse> {
+    console.log("🚀 Auth Service Signup:", {
+      role,
+      data: { ...data, password: data.password ? "***" : undefined },
+    });
+
     const endpoint = role === "USER" ? "/user/signup" : "/barber/signup";
 
     let requestData: any;
@@ -50,7 +71,17 @@ export const authService = {
       };
     }
 
+    console.log("📤 Signup Request:", {
+      endpoint,
+      requestData: {
+        ...requestData,
+        password: requestData.password ? "***" : undefined,
+      },
+    });
+
     const response = await api.post<AuthResponse>(endpoint, requestData);
+
+    console.log("📥 Signup Response:", response.data);
     return response.data;
   },
 
@@ -92,12 +123,14 @@ export const authService = {
     }
   },
 
-  // Helper function to validate Indian phone numbers
+  // ✅ FIXED: Enhanced phone number validation
   validatePhoneNumber(phoneNumber: string): {
     isValid: boolean;
     cleaned: string;
     error?: string;
   } {
+    console.log("🔍 Validating phone number:", phoneNumber);
+
     // Remove all non-digits
     let cleaned = phoneNumber.replace(/\D/g, "");
 
@@ -106,12 +139,14 @@ export const authService = {
       cleaned = cleaned.substring(2);
     }
 
+    console.log("📱 Cleaned phone:", cleaned);
+
     // Should be exactly 10 digits
     if (cleaned.length !== 10) {
       return {
         isValid: false,
         cleaned,
-        error: "Phone number must be 10 digits",
+        error: "Phone number must be exactly 10 digits",
       };
     }
 
@@ -120,10 +155,11 @@ export const authService = {
       return {
         isValid: false,
         cleaned,
-        error: "Invalid Indian phone number format",
+        error: "Phone number must start with 6, 7, 8, or 9",
       };
     }
 
+    console.log("✅ Phone validation successful");
     return { isValid: true, cleaned };
   },
 };
