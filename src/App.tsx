@@ -8,6 +8,7 @@ import UserDashboard from "./pages/UserDashboard";
 import BarberDashboard from "./pages/BarberDashboard";
 import { autoInitServiceWorker } from "./utils/serviceWorkerInit";
 
+
 // Add this line at the top level of your app initialization
 autoInitServiceWorker();
 function App() {
