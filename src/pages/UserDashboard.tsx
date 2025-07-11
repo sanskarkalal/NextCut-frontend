@@ -1,16 +1,18 @@
-// src/pages/UserDashboard.tsx - Corrected version
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLocation } from "../hooks/useLocation";
 import { useUserQueue } from "../hooks/useUserQueue";
 import LocationPicker from "../components/user/LocationPicker";
 import NearbyBarbers from "../components/user/NearbyBarbers";
 import QueueStatus from "../components/user/QueueStatus";
+import ServiceSelection from "../components/user/ServiceSelection";
 import ThemeToggle from "../components/common/ThemeToggle";
-import { type Barber } from "../types";
+import type { Barber, ServiceType } from "../types";
 
 const UserDashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const [showServiceSelection, setShowServiceSelection] = useState(false);
+  const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
 
   // Location hook with enhanced auto-refresh
   const {
@@ -56,13 +58,29 @@ const UserDashboard: React.FC = () => {
     getEstimatedWaitTime,
   } = useUserQueue(handleQueueExit);
 
-  const handleJoinQueue = async (barber: Barber) => {
+  // Handle barber selection - show service selection modal
+  const handleBarberSelect = (barber: Barber) => {
+    setSelectedBarber(barber);
+    setShowServiceSelection(true);
+  };
+
+  // Handle service selection and join queue
+  const handleServiceSelect = async (service: ServiceType) => {
+    if (!selectedBarber) return;
+
     try {
-      await joinQueue(barber.id, barber.name);
-      // Queue status will be automatically refreshed after joining
+      await joinQueue(selectedBarber.id, service, selectedBarber.name);
+      setShowServiceSelection(false);
+      setSelectedBarber(null);
     } catch (error) {
       console.error("Error joining queue:", error);
     }
+  };
+
+  // Handle service selection cancel
+  const handleServiceCancel = () => {
+    setShowServiceSelection(false);
+    setSelectedBarber(null);
   };
 
   return (
@@ -77,25 +95,10 @@ const UserDashboard: React.FC = () => {
                 Welcome back, {user?.name || "User"}!
               </div>
             </div>
-
             <div className="flex items-center space-x-4">
-              {/* Show queue indicator in header if user is in queue */}
-              {queueStatus?.inQueue && (
-                <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-primary-100 dark:bg-primary-900/30 rounded-full">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                    Position #{queueStatus.queuePosition} with{" "}
-                    {queueStatus.barber?.name}
-                  </span>
-                </div>
-              )}
-
               <ThemeToggle />
-              <button
-                onClick={logout}
-                className="btn-secondary text-sm hover:scale-105 transition-transform"
-              >
-                Logout
+              <button onClick={logout} className="btn-secondary text-sm">
+                Sign Out
               </button>
             </div>
           </div>
@@ -105,166 +108,95 @@ const UserDashboard: React.FC = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Queue Status - Show if user is in queue */}
+          {/* Queue Status Section */}
           {queueStatus?.inQueue && (
-            <QueueStatus
-              queueStatus={queueStatus}
-              estimatedWaitTime={getEstimatedWaitTime()}
-              isLoading={isQueueLoading}
-              isLeaving={isLeaving}
-              onLeaveQueue={leaveQueue}
-              onRefresh={refreshStatus}
-            />
-          )}
-
-          {/* Location Picker - Show if user doesn't have location permission */}
-          {!hasLocationPermission && (
-            <LocationPicker
-              onRequestLocation={requestLocation}
-              isLoading={isLoadingLocation}
-              error={locationError}
-              onClearError={clearLocationError}
-              locationError={locationError}
-              isLoadingLocation={isLoadingLocation}
-            />
-          )}
-
-          {/* Nearby Barbers - Show if user has location and is not in queue */}
-          {hasLocationPermission && location && !queueStatus?.inQueue && (
-            <div id="barber-list">
-              {" "}
-              {/* Add ID for scroll targeting */}
-              <NearbyBarbers
-                barbers={nearbyBarbers}
-                isLoading={isLoadingBarbers}
-                error={barbersError}
-                onRefresh={forceRefreshBarbers}
-                onJoinQueue={handleJoinQueue}
-                isJoining={isJoining}
-                userLocation={location}
-                userInQueue={false}
+            <div className="mb-8">
+              <QueueStatus
+                queueStatus={queueStatus}
+                isLoading={isQueueLoading}
+                isLeaving={isLeaving}
+                onLeaveQueue={leaveQueue}
+                onRefresh={refreshStatus}
+                estimatedWaitTime={getEstimatedWaitTime()}
               />
             </div>
           )}
 
-          {/* Show enhanced message if user is in queue */}
-          {queueStatus?.inQueue && (
-            <div className="card text-center">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-primary-600 dark:text-primary-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-title mb-2">
-                You're in {queueStatus.barber?.name}'s Queue!
-              </h3>
-              <p className="text-muted mb-4">
-                You'll get real-time updates about your position with sound
-                notifications. Updates happen every 5 seconds to keep you
-                informed even when you're not actively using the app.
-              </p>
-              <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>5-second updates</span>
+          {/* Location Section */}
+          {!queueStatus?.inQueue && (
+            <>
+              {!hasLocationPermission && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                  <div className="flex items-start">
+                    <svg
+                      className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-1 mr-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-2">
+                        Find Nearby Barbers
+                      </h3>
+                      <p className="text-blue-700 dark:text-blue-300 mb-4">
+                        To show you the closest barber shops, we need access to
+                        your location.
+                      </p>
+                      <LocationPicker
+                        isLoading={isLoadingLocation}
+                        error={locationError}
+                        onRequestLocation={requestLocation}
+                        onClearError={clearLocationError}
+                        locationError={null}
+                        isLoadingLocation={false}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 17h5l-5 5v-5zM4.5 5.653c0-1.426 1.67-2.16 2.598-1.14l15 16.5c.929 1.021.194 2.654-1.141 2.654H4.5c-.83 0-1.5-.67-1.5-1.5V5.653z"
-                    />
-                  </svg>
-                  <span>Push notifications</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M6.343 6.343a9 9 0 000 12.728m2.829-9.9a5 5 0 000 7.072"
-                    />
-                  </svg>
-                  <span>Sound alerts</span>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Show helpful tips when not in queue */}
-          {!queueStatus?.inQueue && hasLocationPermission && location && (
-            <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+              {/* Barbers List */}
+              {location && (
+                <div id="barber-list">
+                  <NearbyBarbers
+                    barbers={nearbyBarbers}
+                    isLoading={isLoadingBarbers}
+                    error={barbersError}
+                    onRefresh={refreshBarbers}
+                    onJoinQueue={handleBarberSelect}
+                    isJoining={isJoining}
+                    userLocation={location}
+                    userInQueue={queueStatus?.inQueue || false}
+                  />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    How NextCut Works
-                  </h3>
-                  <ul className="space-y-2 text-blue-800 dark:text-blue-200 text-sm">
-                    <li className="flex items-center space-x-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      <span>Join any barber's queue with a single tap</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      <span>Get real-time updates about your position</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      <span>
-                        Receive notifications when it's almost your turn
-                      </span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      <span>
-                        Skip the physical wait - do other things nearby!
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {/* Service Selection Modal */}
+      {showServiceSelection && selectedBarber && (
+        <ServiceSelection
+          barberName={selectedBarber.name}
+          onSelect={handleServiceSelect}
+          onCancel={handleServiceCancel}
+          isLoading={isJoining === selectedBarber.id}
+        />
+      )}
     </div>
   );
 };

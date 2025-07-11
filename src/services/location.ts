@@ -1,33 +1,33 @@
-import api from "./api";
-import type { Barber } from "../types";
-
+// src/services/location.ts
 export interface LocationCoords {
   lat: number;
   long: number;
 }
 
 export interface LocationError {
-  code: number;
   message: string;
+  code?: number;
 }
 
-export const locationService = {
-  // Get user's current location using browser geolocation
-  getCurrentLocation(): Promise<LocationCoords> {
+export class LocationService {
+  private static instance: LocationService;
+
+  public static getInstance(): LocationService {
+    if (!LocationService.instance) {
+      LocationService.instance = new LocationService();
+    }
+    return LocationService.instance;
+  }
+
+  async getCurrentLocation(): Promise<LocationCoords> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject({
-          code: 0,
           message: "Geolocation is not supported by this browser",
-        });
+          code: 0,
+        } as LocationError);
         return;
       }
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5 minutes
-      };
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -37,81 +37,151 @@ export const locationService = {
           });
         },
         (error) => {
-          let message = "Unable to retrieve location";
+          let errorMessage = "Unable to get your location";
 
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              message = "Location access denied by user";
+              errorMessage =
+                "Location access denied. Please enable location permission.";
               break;
             case error.POSITION_UNAVAILABLE:
-              message = "Location information is unavailable";
+              errorMessage = "Location information is unavailable.";
               break;
             case error.TIMEOUT:
-              message = "Location request timed out";
+              errorMessage = "Location request timed out.";
               break;
           }
 
           reject({
+            message: errorMessage,
             code: error.code,
-            message,
-          });
+          } as LocationError);
         },
-        options
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000, // 5 minutes
+        }
       );
     });
-  },
+  }
 
-  // Get nearby barbers from API
-  async getNearbyBarbers(
-    lat: number,
-    long: number,
-    radius: number = 5
-  ): Promise<Barber[]> {
-    try {
-      const response = await api.get(
-        `/user/nearby?lat=${lat}&long=${long}&radius=${radius}`
-      );
-      return response.data.barbers || [];
-    } catch (error: any) {
-      console.error("Error fetching nearby barbers:", error);
-      throw new Error(
-        error.response?.data?.error || "Failed to fetch nearby barbers"
-      );
-    }
-  },
+  async watchPosition(
+    callback: (coords: LocationCoords) => void,
+    errorCallback?: (error: LocationError) => void
+  ): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser"));
+        return;
+      }
 
-  // Calculate distance between two points (for display purposes)
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          callback({
+            lat: position.coords.latitude,
+            long: position.coords.longitude,
+          });
+        },
+        (error) => {
+          if (errorCallback) {
+            let errorMessage = "Unable to track your location";
+
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = "Location access denied.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+              case error.TIMEOUT:
+                errorMessage = "Location request timed out.";
+                break;
+            }
+
+            errorCallback(new Error(errorMessage));
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000, // 1 minute
+        }
+      );
+
+      resolve(watchId);
+    });
+  }
+
+  clearWatch(watchId: number): void {
+    navigator.geolocation.clearWatch(watchId);
+  }
+
+  isSupported(): boolean {
+    return !!navigator.geolocation;
+  }
+
   calculateDistance(
     lat1: number,
     lon1: number,
     lat2: number,
     lon2: number
   ): number {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = this.toRad(lat2 - lat1);
-    const dLon = this.toRad(lon2 - lon1);
-
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRad(lat1)) *
-        Math.cos(this.toRad(lat2)) *
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
-
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  },
+    const distance = R * c;
+    return distance;
+  }
 
-  // Convert degrees to radians
-  toRad(deg: number): number {
-    return deg * (Math.PI / 180);
-  },
+  async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
+    // This would call your backend API
+    try {
+      const response = await fetch("/user/barbers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ lat, long, radius }),
+      });
 
-  // Format distance for display
-  formatDistance(distanceKm: number): string {
-    if (distanceKm < 1) {
-      return `${Math.round(distanceKm * 1000)}m`;
+      if (!response.ok) {
+        throw new Error("Failed to fetch nearby barbers");
+      }
+
+      const data = await response.json();
+      return data.barbers || [];
+    } catch (error) {
+      console.error("Error fetching nearby barbers:", error);
+      throw error;
     }
-    return `${distanceKm.toFixed(1)}km`;
-  },
-};
+  }
+
+  async checkPermission(): Promise<PermissionState> {
+    if (!("permissions" in navigator)) {
+      // Fallback for browsers that don't support permissions API
+      try {
+        await this.getCurrentLocation();
+        return "granted";
+      } catch {
+        return "denied";
+      }
+    }
+
+    const permission = await navigator.permissions.query({
+      name: "geolocation",
+    });
+    return permission.state;
+  }
+}
+
+// Export singleton instance
+export const locationService = LocationService.getInstance();

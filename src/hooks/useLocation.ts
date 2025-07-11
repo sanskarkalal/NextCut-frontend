@@ -1,11 +1,11 @@
-// src/hooks/useLocation.ts - Corrected version
+// src/hooks/useLocation.ts
 import { useState, useEffect, useCallback } from "react";
 import {
   locationService,
   type LocationCoords,
   type LocationError,
 } from "../services/location";
-import { type Barber } from "../types";
+import type { Barber } from "../types";
 import toast from "react-hot-toast";
 
 interface UseLocationReturn {
@@ -19,7 +19,7 @@ interface UseLocationReturn {
   requestLocation: () => Promise<void>;
   refreshBarbers: () => Promise<void>;
   clearLocationError: () => void;
-  forceRefreshBarbers: () => Promise<void>; // Force refresh barber data
+  forceRefreshBarbers: () => Promise<void>;
 }
 
 export const useLocation = (): UseLocationReturn => {
@@ -42,13 +42,12 @@ export const useLocation = (): UseLocationReturn => {
       setBarbersError(null);
 
       try {
-        // Use locationService.getNearbyBarbers instead of userService
         const barbersData = await locationService.getNearbyBarbers(
           userLocation.lat,
           userLocation.long
         );
 
-        // Add distance and estimated wait time calculations
+        // Add distance calculations
         const barbersWithDistance = barbersData.map((barber: Barber) => ({
           ...barber,
           distanceKm: locationService.calculateDistance(
@@ -57,19 +56,12 @@ export const useLocation = (): UseLocationReturn => {
             barber.lat,
             barber.long
           ),
-          estimatedWaitTime: (barber.queueLength || 0) * 15, // 15 minutes per person
         }));
-
-        // Sort by distance
-        barbersWithDistance.sort(
-          (a: Barber, b: Barber) => (a.distanceKm || 0) - (b.distanceKm || 0)
-        );
 
         setNearbyBarbers(barbersWithDistance);
       } catch (error: any) {
-        const errorMessage = error.message || "Failed to fetch nearby barbers";
-        setBarbersError(errorMessage);
-        console.error("Error fetching nearby barbers:", error);
+        setBarbersError(error.message || "Failed to load nearby barbers");
+        toast.error("Failed to load nearby barbers");
       } finally {
         setIsLoadingBarbers(false);
       }
@@ -83,88 +75,44 @@ export const useLocation = (): UseLocationReturn => {
     setLocationError(null);
 
     try {
-      const userLocation = await locationService.getCurrentLocation();
-      setLocation(userLocation);
+      const coords = await locationService.getCurrentLocation();
+      setLocation(coords);
       setHasLocationPermission(true);
+      toast.success("Location access granted!");
 
-      // Fetch nearby barbers immediately after getting location
-      await fetchNearbyBarbers(userLocation);
-
-      toast.success("Location access granted! Finding nearby barbers...");
+      // Automatically fetch nearby barbers
+      await fetchNearbyBarbers(coords);
     } catch (error: any) {
       setLocationError(error as LocationError);
       setHasLocationPermission(false);
-
-      // Don't show toast for user-denied permission (they chose not to share)
-      if (error.code !== 1) {
-        toast.error(error.message);
-      }
+      toast.error(error.message || "Failed to get location");
     } finally {
       setIsLoadingLocation(false);
     }
   }, [fetchNearbyBarbers]);
 
-  // Refresh barbers (wrapper around fetchNearbyBarbers)
+  // Refresh barbers list
   const refreshBarbers = useCallback(async () => {
     if (location) {
       await fetchNearbyBarbers(location);
     }
   }, [location, fetchNearbyBarbers]);
 
-  // Force refresh barbers with user feedback
+  // Force refresh barbers (same as refreshBarbers for now)
   const forceRefreshBarbers = useCallback(async () => {
-    if (location) {
-      toast.loading("Refreshing barber list...", { id: "refresh-barbers" });
-      await fetchNearbyBarbers(location);
-      toast.success("Barber list updated!", { id: "refresh-barbers" });
-    }
-  }, [location, fetchNearbyBarbers]);
+    await refreshBarbers();
+  }, [refreshBarbers]);
 
   // Clear location error
   const clearLocationError = useCallback(() => {
     setLocationError(null);
   }, []);
 
-  // Check if location is already available on mount
+  // Check for existing location on mount
   useEffect(() => {
-    const checkInitialLocation = async () => {
-      try {
-        if (navigator.geolocation) {
-          // Check if we have permission without requesting
-          const permission = await navigator.permissions.query({
-            name: "geolocation",
-          });
-          if (permission.state === "granted") {
-            await requestLocation();
-          }
-        }
-      } catch (error) {
-        // Silent fail - user can manually request location
-        console.log("Initial location check failed:", error);
-      }
-    };
-
-    checkInitialLocation();
-  }, [requestLocation]);
-
-  // Auto-refresh barber queue lengths every 30 seconds
-  useEffect(() => {
-    if (!location || !hasLocationPermission) return;
-
-    const interval = setInterval(() => {
-      // Silently refresh barber data (no toast notifications)
-      fetchNearbyBarbers(location);
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [location, hasLocationPermission, fetchNearbyBarbers]);
-
-  // Refresh barbers when location changes
-  useEffect(() => {
-    if (location && hasLocationPermission) {
-      fetchNearbyBarbers(location);
-    }
-  }, [location, hasLocationPermission, fetchNearbyBarbers]);
+    // You could check if location permission was previously granted
+    // and automatically request location
+  }, []);
 
   return {
     location,

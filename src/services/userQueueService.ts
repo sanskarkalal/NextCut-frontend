@@ -1,54 +1,14 @@
+// src/services/userQueueService.ts
 import api from "./api";
-
-export interface JoinQueueResponse {
-  msg: string;
-  queue: {
-    id: number;
-    enteredAt: string;
-    barberId: number;
-    userId: number;
-    user: {
-      id: number;
-      name: string;
-    };
-    barber: {
-      id: number;
-      name: string;
-      lat?: number; // Added coordinates
-      long?: number;
-    };
-  };
-}
-
-export interface LeaveQueueResponse {
-  msg: string;
-  data?: {
-    removedFrom: {
-      id: number;
-      name: string;
-    };
-    removedAt: string;
-  };
-}
-
-export interface QueueStatusResponse {
-  inQueue: boolean;
-  queuePosition: number | null;
-  barber: {
-    id: number;
-    name: string;
-    lat?: number; // Added coordinates for directions
-    long?: number;
-  } | null;
-  enteredAt: string | null;
-}
+import type { ServiceType } from "../types";
 
 export const userQueueService = {
-  // Join a barber's queue
-  async joinQueue(barberId: number): Promise<JoinQueueResponse> {
+  // Join a barber's queue with service selection
+  async joinQueue(barberId: number, service: ServiceType) {
     try {
-      const response = await api.post<JoinQueueResponse>("/user/joinqueue", {
+      const response = await api.post("/user/joinqueue", {
         barberId,
+        service,
       });
       return response.data;
     } catch (error: any) {
@@ -62,9 +22,9 @@ export const userQueueService = {
   },
 
   // Leave current queue
-  async leaveQueue(): Promise<LeaveQueueResponse> {
+  async leaveQueue() {
     try {
-      const response = await api.post<LeaveQueueResponse>("/user/leavequeue");
+      const response = await api.post("/user/leavequeue");
       return response.data;
     } catch (error: any) {
       console.error("Error leaving queue:", error);
@@ -76,12 +36,10 @@ export const userQueueService = {
     }
   },
 
-  // Get current queue status (simplified for now)
-  async getQueueStatus(): Promise<QueueStatusResponse> {
+  // Get current queue status with service info
+  async getQueueStatus() {
     try {
-      const response = await api.get<{ queueStatus: QueueStatusResponse }>(
-        "/user/queue-status"
-      );
+      const response = await api.get("/user/queue-status");
       return response.data.queueStatus;
     } catch (error: any) {
       // If endpoint doesn't exist yet, return default status
@@ -91,10 +49,31 @@ export const userQueueService = {
           queuePosition: null,
           barber: null,
           enteredAt: null,
+          service: null,
+          estimatedWaitTime: null,
         };
       }
       console.error("Error getting queue status:", error);
       throw new Error("Failed to get queue status");
+    }
+  },
+
+  // Get nearby barbers with updated queue info
+  async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
+    try {
+      const response = await api.post("/user/barbers", {
+        lat,
+        long,
+        radius,
+      });
+      return response.data.barbers;
+    } catch (error: any) {
+      console.error("Error getting nearby barbers:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.msg ||
+        "Failed to get nearby barbers";
+      throw new Error(errorMessage);
     }
   },
 };

@@ -1,167 +1,133 @@
-import api from "../services/api";
-import type { ServiceType } from "../types";
+// src/hooks/useUserQueue.ts
+import { useState, useEffect, useCallback } from "react";
+import { userQueueService } from "../services/userQueueService";
+import type { ServiceType, QueueStatus } from "../types";
+import toast from "react-hot-toast";
 
-export interface JoinQueueResponse {
-  msg: string;
-  queue: {
-    id: number;
-    enteredAt: string;
-    barberId: number;
-    userId: number;
-    service: ServiceType;
-    user: {
-      id: number;
-      name: string;
-      phoneNumber: string;
-    };
-    barber: {
-      id: number;
-      name: string;
-      lat?: number;
-      long?: number;
-    };
-  };
-}
-
-export interface LeaveQueueResponse {
-  msg: string;
-  data?: {
-    removedFrom: {
-      id: number;
-      name: string;
-    };
-    removedAt: string;
-  };
-}
-
-export interface QueueStatusResponse {
-  inQueue: boolean;
-  queuePosition: number | null;
-  barber: {
-    id: number;
-    name: string;
-    lat?: number;
-    long?: number;
-  } | null;
-  enteredAt: string | null;
-  service: ServiceType | null;
-  estimatedWaitTime: number | null; // in minutes
-}
-
-export const userQueueService = {
-  // Join a barber's queue with service selection
-  async joinQueue(
+interface UseUserQueueReturn {
+  queueStatus: QueueStatus | null;
+  isLoading: boolean;
+  isJoining: number | null;
+  isLeaving: boolean;
+  error: string | null;
+  joinQueue: (
     barberId: number,
-    service: ServiceType
-  ): Promise<JoinQueueResponse> {
+    service: ServiceType,
+    barberName: string
+  ) => Promise<void>;
+  leaveQueue: () => Promise<void>;
+  refreshStatus: () => void;
+  getEstimatedWaitTime: () => number;
+}
+
+export const useUserQueue = (onQueueExit?: () => void): UseUserQueueReturn => {
+  const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isJoining, setIsJoining] = useState<number | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch current queue status
+  const fetchQueueStatus = useCallback(async () => {
     try {
-      const response = await api.post<JoinQueueResponse>("/user/joinqueue", {
-        barberId,
-        service,
-      });
-      return response.data;
+      setIsLoading(true);
+      setError(null);
+      const status = await userQueueService.getQueueStatus();
+      setQueueStatus(status);
     } catch (error: any) {
-      console.error("Error joining queue:", error);
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.msg ||
-        "Failed to join queue";
-      throw new Error(errorMessage);
+      console.error("Error fetching queue status:", error);
+      setError(error.message || "Failed to fetch queue status");
+    } finally {
+      setIsLoading(false);
     }
-  },
+  }, []);
+
+  // Join a queue with service selection
+  const joinQueue = useCallback(
+    async (barberId: number, service: ServiceType, barberName: string) => {
+      setIsJoining(barberId);
+      setError(null);
+
+      try {
+        await userQueueService.joinQueue(barberId, service);
+        toast.success(
+          `Successfully joined ${barberName}'s queue for ${service}!`
+        );
+        await fetchQueueStatus();
+      } catch (error: any) {
+        const errorMessage = error.message || "Failed to join queue";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setIsJoining(null);
+      }
+    },
+    [fetchQueueStatus]
+  );
 
   // Leave current queue
-  async leaveQueue(): Promise<LeaveQueueResponse> {
-    try {
-      const response = await api.post<LeaveQueueResponse>("/user/leavequeue");
-      return response.data;
-    } catch (error: any) {
-      console.error("Error leaving queue:", error);
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.msg ||
-        "Failed to leave queue";
-      throw new Error(errorMessage);
-    }
-  },
+  const leaveQueue = useCallback(async () => {
+    setIsLeaving(true);
+    setError(null);
 
-  // Get current queue status with service info
-  async getQueueStatus(): Promise<QueueStatusResponse> {
     try {
-      const response = await api.get<{ queueStatus: QueueStatusResponse }>(
-        "/user/queue-status"
-      );
-      return response.data.queueStatus;
-    } catch (error: any) {
-      // If endpoint doesn't exist yet, return default status
-      if (error.response?.status === 404) {
-        return {
-          inQueue: false,
-          queuePosition: null,
-          barber: null,
-          enteredAt: null,
-          service: null,
-          estimatedWaitTime: null,
-        };
+      await userQueueService.leaveQueue();
+      toast.success("Successfully left the queue");
+      await fetchQueueStatus();
+
+      if (onQueueExit) {
+        onQueueExit();
       }
-      console.error("Error getting queue status:", error);
-      throw new Error("Failed to get queue status");
-    }
-  },
-
-  // Get nearby barbers with updated queue info
-  async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
-    try {
-      const response = await api.post("/user/barbers", {
-        lat,
-        long,
-        radius,
-      });
-      return response.data.barbers;
     } catch (error: any) {
-      console.error("Error getting nearby barbers:", error);
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.msg ||
-        "Failed to get nearby barbers";
-      throw new Error(errorMessage);
+      const errorMessage = error.message || "Failed to leave queue";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLeaving(false);
     }
-  },
+  }, [fetchQueueStatus, onQueueExit]);
 
-  // Helper function to calculate service-based wait time
-  calculateServiceWaitTime(
-    queueEntries: Array<{ service: ServiceType }>
-  ): number {
-    const serviceTimes = {
-      haircut: 20,
-      beard: 5,
-      "haircut+beard": 25,
-    };
+  // Manual refresh
+  const refreshStatus = useCallback(() => {
+    fetchQueueStatus();
+  }, [fetchQueueStatus]);
 
-    return queueEntries.reduce((total, entry) => {
-      return total + (serviceTimes[entry.service] || 20);
-    }, 0);
-  },
-
-  // Helper function to format wait time
-  formatWaitTime(minutes: number): string {
-    if (minutes < 60) {
-      return `${minutes}m`;
+  // Calculate estimated wait time
+  const getEstimatedWaitTime = useCallback(() => {
+    if (!queueStatus?.inQueue || !queueStatus.estimatedWaitTime) {
+      return 0;
     }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0
-      ? `${hours}h ${remainingMinutes}m`
-      : `${hours}h`;
-  },
+    return queueStatus.estimatedWaitTime;
+  }, [queueStatus]);
 
-  // Helper function to get service display info
-  getServiceInfo(service: ServiceType) {
-    const serviceMap = {
-      haircut: { name: "Haircut", duration: 20, icon: "✂️" },
-      beard: { name: "Beard Trim", duration: 5, icon: "🧔" },
-      "haircut+beard": { name: "Haircut + Beard", duration: 25, icon: "✂️🧔" },
-    };
-    return serviceMap[service] || serviceMap["haircut"];
-  },
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchQueueStatus();
+  }, [fetchQueueStatus]);
+
+  // Auto-refresh polling
+  useEffect(() => {
+    const interval = setInterval(
+      () => {
+        fetchQueueStatus();
+      },
+      queueStatus?.inQueue ? 5000 : 30000
+    );
+
+    return () => clearInterval(interval);
+  }, [fetchQueueStatus, queueStatus?.inQueue]);
+
+  return {
+    queueStatus,
+    isLoading,
+    isJoining,
+    isLeaving,
+    error,
+    joinQueue,
+    leaveQueue,
+    refreshStatus,
+    getEstimatedWaitTime,
+  };
 };
+
+export default useUserQueue;
