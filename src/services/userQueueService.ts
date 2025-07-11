@@ -1,4 +1,6 @@
-// src/services/userQueueService.ts
+// ========================
+// FIXED userQueueService.ts - Complete Version
+// ========================
 import api from "./api";
 import type { ServiceType } from "../types";
 
@@ -42,10 +44,13 @@ export const userQueueService = {
     }
   },
 
-  // Get current queue status with service info
+  // ✅ FIXED: Get current queue status with service info
   async getQueueStatus() {
     try {
+      console.log("🔍 Fetching queue status...");
+
       const response = await api.get<{
+        msg: string;
         queueStatus: {
           inQueue: boolean;
           queuePosition: number | null;
@@ -60,10 +65,17 @@ export const userQueueService = {
           estimatedWaitTime: number | null;
         };
       }>("/user/queue-status");
+
+      console.log("✅ Queue status response:", response.data);
+
+      // ✅ FIXED: Now correctly accessing queueStatus from response
       return response.data.queueStatus;
     } catch (error: any) {
+      console.error("❌ Error getting queue status:", error);
+
       // If endpoint doesn't exist yet, return default status
       if (error.response?.status === 404) {
+        console.log("📝 Endpoint not found, returning default status");
         return {
           inQueue: false,
           queuePosition: null,
@@ -73,27 +85,42 @@ export const userQueueService = {
           estimatedWaitTime: null,
         };
       }
-      console.error("Error getting queue status:", error);
-      throw new Error("Failed to get queue status");
+
+      // ✅ IMPROVED: Better error handling
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.msg ||
+        error.message ||
+        "Failed to get queue status";
+
+      throw new Error(errorMessage);
     }
   },
 
   // Get nearby barbers with updated queue info
   async getNearbyBarbers(lat: number, long: number, radius: number = 10) {
     try {
+      console.log("🔍 Fetching nearby barbers...", { lat, long, radius });
+
       const response = await api.post<{
+        msg?: string;
         barbers: any[];
       }>("/user/barbers", {
         lat,
         long,
         radius,
       });
-      return response.data.barbers;
+
+      console.log("✅ Nearby barbers response:", response.data);
+
+      // ✅ FIXED: Handle both response structures
+      return response.data.barbers || response.data;
     } catch (error: any) {
-      console.error("Error getting nearby barbers:", error);
+      console.error("❌ Error getting nearby barbers:", error);
       const errorMessage =
         error.response?.data?.error ||
         error.response?.data?.msg ||
+        error.message ||
         "Failed to get nearby barbers";
       throw new Error(errorMessage);
     }
