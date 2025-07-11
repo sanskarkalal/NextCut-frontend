@@ -6,11 +6,12 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import UserDashboard from "./pages/UserDashboard";
 import BarberDashboard from "./pages/BarberDashboard";
+import HiddenBarberSignup from "./pages/HiddenBarberSignup";
 import { autoInitServiceWorker } from "./utils/serviceWorkerInit";
-
 
 // Add this line at the top level of your app initialization
 autoInitServiceWorker();
+
 function App() {
   return (
     <ThemeProvider>
@@ -20,6 +21,12 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
+
+              {/* Hidden Barber Registration Route */}
+              <Route
+                path="/barber/register/secret-signup-2024"
+                element={<HiddenBarberSignup />}
+              />
 
               {/* Protected User Routes */}
               <Route
@@ -40,6 +47,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* 404 Route */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
 
             {/* Toast Notifications */}
@@ -77,5 +87,21 @@ function App() {
     </ThemeProvider>
   );
 }
+
+// Simple 404 Page Component
+const NotFoundPage = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
+      <p className="text-xl text-gray-600 mb-8">Page not found</p>
+      <a
+        href="/"
+        className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
+      >
+        Go Home
+      </a>
+    </div>
+  </div>
+);
 
 export default App;

@@ -11,7 +11,7 @@ interface SignupFormProps {
 }
 
 interface FormData extends SignupData {
-  confirmPassword: string;
+  confirmPassword?: string;
 }
 
 const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
@@ -72,13 +72,15 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
 
       const signupData: SignupData = {
         name: data.name,
-        email: data.email,
-        password: data.password,
       };
 
-      // Add barber-specific fields
-      if (role === "BARBER") {
+      if (role === "USER") {
+        // User signup: phone number + name only
+        signupData.phoneNumber = data.phoneNumber;
+      } else {
+        // Barber signup: all fields including location
         signupData.username = data.username;
+        signupData.password = data.password;
         signupData.lat = barberLocation!.lat;
         signupData.long = barberLocation!.long;
       }
@@ -111,7 +113,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
             htmlFor="name"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            {role === "USER" ? "Full Name" : "Shop Name"}
+            Full Name
           </label>
           <input
             type="text"
@@ -132,33 +134,42 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
           )}
         </div>
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            {...register("email", {
-              required: "Email is required",
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: "Invalid email address",
-              },
-            })}
-            className={`input-field ${errors.email ? "input-error" : ""}`}
-            placeholder="Enter your email"
-            disabled={isDisabled}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-          )}
-        </div>
-
-        {role === "BARBER" && (
+        {role === "USER" ? (
+          // USER: Phone number only
+          <div>
+            <label
+              htmlFor="phoneNumber"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              id="phoneNumber"
+              {...register("phoneNumber", {
+                required: "Phone number is required",
+                pattern: {
+                  value: /^[6-9][0-9]{9}$/,
+                  message: "Enter a valid 10-digit Indian phone number",
+                },
+              })}
+              className={`input-field ${
+                errors.phoneNumber ? "input-error" : ""
+              }`}
+              placeholder="Enter 10-digit phone number (e.g., 9876543210)"
+              disabled={isDisabled}
+            />
+            {errors.phoneNumber && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.phoneNumber.message}
+              </p>
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              No password needed! We'll send you a verification code later.
+            </p>
+          </div>
+        ) : (
+          // BARBER: Username and password
           <>
             <div>
               <label
@@ -176,6 +187,11 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
                     value: 3,
                     message: "Username must be at least 3 characters",
                   },
+                  pattern: {
+                    value: /^[a-zA-Z0-9_]+$/,
+                    message:
+                      "Username can only contain letters, numbers, and underscores",
+                  },
                 })}
                 className={`input-field ${
                   errors.username ? "input-error" : ""
@@ -190,11 +206,69 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
               )}
             </div>
 
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters",
+                  },
+                })}
+                className={`input-field ${
+                  errors.password ? "input-error" : ""
+                }`}
+                placeholder="Create a password"
+                disabled={isDisabled}
+              />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                {...register("confirmPassword", {
+                  required: "Please confirm your password",
+                  validate: (value) =>
+                    value === password || "Passwords do not match",
+                })}
+                className={`input-field ${
+                  errors.confirmPassword ? "input-error" : ""
+                }`}
+                placeholder="Confirm your password"
+                disabled={isDisabled}
+              />
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
+            </div>
+
             {/* Location Section for Barber */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center mb-2">
                 <svg
-                  className="w-5 h-5 text-blue-600 mt-0.5"
+                  className="w-5 h-5 text-blue-600 mr-2"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -212,106 +286,39 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-900 mb-1">
-                    Shop Location
-                  </h4>
-                  <p className="text-sm text-blue-700 mb-3">
-                    Please ensure you're at your barbershop location before
-                    registering. We'll automatically detect your location.
-                  </p>
-
-                  {isLocationLoading && (
-                    <div className="flex items-center text-sm text-blue-700">
-                      <LoadingSpinner size="sm" className="mr-2" />
-                      Getting your location...
-                    </div>
-                  )}
-
-                  {locationError && (
-                    <div className="space-y-2">
-                      <p className="text-sm text-red-600">{locationError}</p>
-                      <button
-                        type="button"
-                        onClick={requestBarberLocation}
-                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                      >
-                        Try Again
-                      </button>
-                    </div>
-                  )}
-
-                  {barberLocation && (
-                    <div className="text-sm text-green-700">
-                      ✓ Location detected: {barberLocation.lat.toFixed(6)},{" "}
-                      {barberLocation.long.toFixed(6)}
-                    </div>
-                  )}
-                </div>
+                <span className="font-medium text-blue-800">Shop Location</span>
               </div>
-            </div>
 
-            {/* Hidden fields for coordinates */}
-            <input type="hidden" {...register("lat")} />
-            <input type="hidden" {...register("long")} />
+              {isLocationLoading ? (
+                <div className="flex items-center text-blue-600">
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Getting your location...
+                </div>
+              ) : barberLocation ? (
+                <div className="text-green-700">
+                  ✓ Location captured successfully
+                </div>
+              ) : (
+                <div>
+                  <p className="text-blue-700 text-sm mb-2">
+                    We need your shop's location to help customers find you.
+                  </p>
+                  {locationError && (
+                    <p className="text-red-600 text-sm mb-2">{locationError}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={requestBarberLocation}
+                    className="btn-secondary text-sm"
+                    disabled={isDisabled}
+                  >
+                    Allow Location Access
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            {...register("password", {
-              required: "Password is required",
-              minLength: {
-                value: 6,
-                message: "Password must be at least 6 characters",
-              },
-            })}
-            className={`input-field ${errors.password ? "input-error" : ""}`}
-            placeholder="Create a password"
-            disabled={isDisabled}
-          />
-          {errors.password && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Confirm Password
-          </label>
-          <input
-            type="password"
-            id="confirmPassword"
-            {...register("confirmPassword", {
-              required: "Please confirm your password",
-              validate: (value) =>
-                value === password || "Passwords do not match",
-            })}
-            className={`input-field ${
-              errors.confirmPassword ? "input-error" : ""
-            }`}
-            placeholder="Confirm your password"
-            disabled={isDisabled}
-          />
-          {errors.confirmPassword && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
 
         <button
           type="submit"
@@ -328,6 +335,16 @@ const SignupForm: React.FC<SignupFormProps> = ({ role, onSwitchToLogin }) => {
           )}
         </button>
       </form>
+
+      {role === "USER" && (
+        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <p className="text-sm text-green-700">
+            <span className="font-medium">Simple & Fast!</span> No passwords or
+            email verification needed. Just your name and phone number to get
+            started.
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 text-center">
         <p className="text-gray-600">

@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../../context/AuthContext";
-import type { LoginData, UserRole } from "../../types";
+import type { UserRole } from "../../types";
 import LoadingSpinner from "../common/LoadingSpinner";
 
 interface LoginFormProps {
   role: UserRole;
   onSwitchToSignup: () => void;
+}
+
+interface LoginFormData {
+  phoneOrUsername: string;
+  password?: string;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ role, onSwitchToSignup }) => {
@@ -17,12 +22,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ role, onSwitchToSignup }) => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginData>();
+  } = useForm<LoginFormData>();
 
-  const onSubmit = async (data: LoginData) => {
+  const onSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true);
-      await login(data.email, data.password, role);
+      await login(data.phoneOrUsername, data.password, role);
     } catch (error) {
       // Error handling is done in the context
     } finally {
@@ -44,59 +49,71 @@ const LoginForm: React.FC<LoginFormProps> = ({ role, onSwitchToSignup }) => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label
-            htmlFor="email"
+            htmlFor="phoneOrUsername"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            {role === "USER" ? "Email" : "Username"}
+            {role === "USER" ? "Phone Number" : "Username"}
           </label>
           <input
-            type={role === "USER" ? "email" : "text"}
-            id="email"
-            {...register("email", {
-              required: `${role === "USER" ? "Email" : "Username"} is required`,
+            type="text"
+            id="phoneOrUsername"
+            {...register("phoneOrUsername", {
+              required: `${
+                role === "USER" ? "Phone number" : "Username"
+              } is required`,
               ...(role === "USER" && {
                 pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: "Invalid email address",
+                  value: /^[6-9][0-9]{9}$/,
+                  message: "Enter a valid 10-digit Indian phone number",
                 },
               }),
             })}
-            className={`input-field ${errors.email ? "input-error" : ""}`}
-            placeholder={`Enter your ${role === "USER" ? "email" : "username"}`}
+            className={`input-field ${
+              errors.phoneOrUsername ? "input-error" : ""
+            }`}
+            placeholder={
+              role === "USER"
+                ? "Enter your phone number (e.g., 9876543210)"
+                : "Enter your username"
+            }
             disabled={isDisabled}
           />
-          {errors.email && (
-            <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            {...register("password", {
-              required: "Password is required",
-              minLength: {
-                value: 6,
-                message: "Password must be at least 6 characters",
-              },
-            })}
-            className={`input-field ${errors.password ? "input-error" : ""}`}
-            placeholder="Enter your password"
-            disabled={isDisabled}
-          />
-          {errors.password && (
+          {errors.phoneOrUsername && (
             <p className="text-red-500 text-sm mt-1">
-              {errors.password.message}
+              {errors.phoneOrUsername.message}
             </p>
           )}
         </div>
+
+        {role === "BARBER" && (
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              {...register("password", {
+                required: role === "BARBER" ? "Password is required" : false,
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters",
+                },
+              })}
+              className={`input-field ${errors.password ? "input-error" : ""}`}
+              placeholder="Enter your password"
+              disabled={isDisabled}
+            />
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           type="submit"
@@ -113,6 +130,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ role, onSwitchToSignup }) => {
           )}
         </button>
       </form>
+
+      {role === "USER" && (
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-700">
+            <span className="font-medium">New to NextCut?</span> Just enter your
+            phone number above - no password needed!
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 text-center">
         <p className="text-gray-600">

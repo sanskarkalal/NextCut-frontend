@@ -6,7 +6,13 @@ import React, {
   useEffect,
   type ReactNode,
 } from "react";
-import type { AuthContextType, User, Barber, UserRole, SignupData } from "../types";
+import type {
+  AuthContextType,
+  User,
+  Barber,
+  UserRole,
+  SignupData,
+} from "../types";
 import { authService } from "../services/auth";
 import toast from "react-hot-toast";
 
@@ -51,39 +57,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string, userRole: UserRole) => {
+  const login = async (
+    phoneOrUsername: string,
+    password?: string,
+    userRole?: UserRole
+  ) => {
     try {
       setLoading(true);
-      const response = await authService.login({ email, password }, userRole);
+
+      // Auto-detect role if not provided
+      const detectedRole = userRole || (password ? "BARBER" : "USER");
+
+      // Validate phone number for users
+      if (detectedRole === "USER") {
+        const validation = authService.validatePhoneNumber(phoneOrUsername);
+        if (!validation.isValid) {
+          throw new Error(validation.error);
+        }
+        phoneOrUsername = validation.cleaned;
+      }
+
+      const response = await authService.login(
+        phoneOrUsername,
+        password,
+        detectedRole
+      );
 
       if (response.token) {
         setToken(response.token);
-        setRole(userRole);
+        setRole(detectedRole);
 
-        if (userRole === "USER" && response.user) {
+        if (detectedRole === "USER" && response.user) {
           setUser(response.user);
           setBarber(null); // Clear barber data
           authService.setStoredAuth(
             response.token,
             response.user,
             null,
-            userRole
+            detectedRole
           );
-        } else if (userRole === "BARBER" && response.barber) {
+          toast.success("Welcome back!");
+        } else if (detectedRole === "BARBER" && response.barber) {
           setBarber(response.barber);
           setUser(null); // Clear user data
           authService.setStoredAuth(
             response.token,
             null,
             response.barber,
-            userRole
+            detectedRole
           );
+          toast.success("Welcome back!");
         } else {
           // Invalid response structure
           throw new Error("Invalid login response");
         }
-
-        toast.success(response.msg || "Login successful!");
       } else {
         throw new Error(response.msg || "Login failed");
       }
@@ -103,6 +130,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (data: SignupData, userRole: UserRole) => {
     try {
       setLoading(true);
+
+      // Validate phone number for users
+      if (userRole === "USER" && data.phoneNumber) {
+        const validation = authService.validatePhoneNumber(data.phoneNumber);
+        if (!validation.isValid) {
+          throw new Error(validation.error);
+        }
+        data.phoneNumber = validation.cleaned;
+      }
+
       const response = await authService.signup(data, userRole);
 
       if (response.token) {
@@ -118,6 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             null,
             userRole
           );
+          toast.success("Account created successfully!");
         } else if (userRole === "BARBER" && response.barber) {
           setBarber(response.barber);
           setUser(null); // Clear user data
@@ -127,12 +165,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             response.barber,
             userRole
           );
+          toast.success("Barber account created successfully!");
         } else {
           // Invalid response structure
           throw new Error("Invalid signup response");
         }
-
-        toast.success(response.msg || "Account created successfully!");
       } else {
         throw new Error(response.msg || "Signup failed");
       }

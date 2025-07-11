@@ -1,7 +1,8 @@
+// src/types/index.ts
 export interface User {
   id: number;
   name: string;
-  email: string;
+  phoneNumber: string; // Changed from email to phoneNumber
   inQueue?: boolean;
   queuedBarberId?: number;
 }
@@ -13,8 +14,8 @@ export interface Barber {
   lat: number;
   long: number;
   distanceKm?: number;
-  queueLength?: number; // ADD THIS - number of people in queue
-  estimatedWaitTime?: number; // ADD THIS - in minutes
+  queueLength?: number;
+  estimatedWaitTime?: number; // in minutes
 }
 
 export interface QueueEntry {
@@ -22,6 +23,7 @@ export interface QueueEntry {
   enteredAt: string;
   barberId: number;
   userId: number;
+  service: string; // NEW: service type
   user: {
     id: number;
     name: string;
@@ -42,12 +44,18 @@ export interface ApiError {
 
 export type UserRole = "USER" | "BARBER";
 
+export type ServiceType = "haircut" | "beard" | "haircut+beard";
+
 export interface AuthContextType {
   user: User | null;
   barber: Barber | null;
   token: string | null;
   role: UserRole | null;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  login: (
+    phoneOrUsername: string,
+    password?: string,
+    role?: UserRole
+  ) => Promise<void>; // Updated for phone auth
   signup: (data: SignupData, role: UserRole) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -56,14 +64,40 @@ export interface AuthContextType {
 
 export interface SignupData {
   name: string;
-  email: string;
-  password: string;
+  phoneNumber?: string; // For users - phone number
+  email?: string; // Keep for backward compatibility
+  password?: string; // Only for barbers now
   username?: string; // for barber
   lat?: number; // for barber
   long?: number; // for barber
 }
 
 export interface LoginData {
-  email: string;
-  password: string;
+  phoneNumber?: string; // For users
+  email?: string; // Keep for backward compatibility
+  username?: string; // For barbers
+  password?: string; // Only for barbers
+}
+
+// NEW: Service selection interface
+export interface ServiceOption {
+  id: ServiceType;
+  name: string;
+  duration: number; // in minutes
+  description: string;
+}
+
+// NEW: Queue status with service info
+export interface QueueStatus {
+  inQueue: boolean;
+  queuePosition: number | null;
+  barber: {
+    id: number;
+    name: string;
+    lat: number;
+    long: number;
+  } | null;
+  enteredAt: string | null;
+  service: ServiceType | null;
+  estimatedWaitTime: number | null; // in minutes
 }
