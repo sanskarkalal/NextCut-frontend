@@ -207,11 +207,7 @@ const BarberCard: React.FC<BarberCardProps> = ({
 
   // NEW: Handle get directions
   const handleGetDirections = () => {
-    directionsUtils.openDirections({
-      lat: barber.lat,
-      long: barber.long,
-      name: barber.name,
-    });
+    directionsUtils.openDirections(barber.lat, barber.long, barber.name);
   };
 
   return (

@@ -10,6 +10,7 @@ export interface BarberQueueResponse {
     user: {
       id: number;
       name: string;
+      phoneNumber: string; 
     };
     enteredAt: string;
     service?: string;

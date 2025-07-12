@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { type BarberQueueResponse } from "../../services/barberService";
 import LoadingSpinner from "../common/LoadingSpinner";
+import AddWalkinModal from "./AddWalkinModal";
 
 interface QueueManagementProps {
   queue: BarberQueueResponse | null;
@@ -8,7 +9,7 @@ interface QueueManagementProps {
   error: string | null;
   onRefresh: () => void;
   onRemoveUser: (userId: number, userName: string) => void;
-  removingUserId: number | null; // Changed from isRemoving
+  removingUserId: number | null;
 }
 
 const QueueManagement: React.FC<QueueManagementProps> = ({
@@ -17,8 +18,10 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
   error,
   onRefresh,
   onRemoveUser,
-  removingUserId, // Use specific user ID being removed
+  removingUserId,
 }) => {
+  const [showWalkinModal, setShowWalkinModal] = useState(false);
+
   if (isLoading && !queue) {
     return (
       <div className="card">
@@ -72,33 +75,54 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
             {queue?.queueLength !== 1 ? "s" : ""} waiting
           </p>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="btn-secondary flex items-center space-x-2 hover:scale-105 transition-transform"
-        >
-          <svg
-            className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowWalkinModal(true)}
+            className="btn-primary flex items-center space-x-2 hover:scale-105 transition-transform"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>Refresh</span>
-        </button>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            <span>Add Walk-in</span>
+          </button>
+          <button
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="btn-secondary flex items-center space-x-2 hover:scale-105 transition-transform"
+          >
+            <svg
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Queue Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="stat-card-primary rounded-lg p-4">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
+            <div className="w-8 h-8 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
               <svg
                 className="w-4 h-4 text-white"
                 fill="none"
@@ -114,33 +138,7 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium">Total Waiting</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {queue?.queueLength || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card-success rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-green-600 dark:bg-emerald-500 rounded-full flex items-center justify-center shadow-lg dark:shadow-glow-blue">
-              <svg
-                className="w-4 h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">Est. Wait Time</p>
+              <p className="text-sm font-medium">Total Wait Time</p>
               <p className="text-2xl font-bold text-green-600 dark:text-emerald-400">
                 {queue?.queueLength ? `${queue.queueLength * 15}m` : "0m"}
               </p>
@@ -213,11 +211,22 @@ const QueueManagement: React.FC<QueueManagementProps> = ({
                 key={customer.queueId}
                 customer={customer}
                 onRemove={onRemoveUser}
-                isRemoving={removingUserId === customer.user.id} // Check specific user
+                isRemoving={removingUserId === customer.user.id}
               />
             ))}
           </div>
         </div>
+      )}
+
+      {/* Add Walk-in Modal */}
+      {showWalkinModal && (
+        <AddWalkinModal
+          onClose={() => setShowWalkinModal(false)}
+          onSuccess={() => {
+            setShowWalkinModal(false);
+            onRefresh(); // Refresh queue after adding walk-in
+          }}
+        />
       )}
     </div>
   );
@@ -230,17 +239,19 @@ interface QueueCustomerCardProps {
     user: {
       id: number;
       name: string;
+      phoneNumber: string;
     };
     enteredAt: string;
+    service?: string;
   };
   onRemove: (userId: number, userName: string) => void;
-  isRemoving: boolean; // Now specific to this customer
+  isRemoving: boolean;
 }
 
 const QueueCustomerCard: React.FC<QueueCustomerCardProps> = ({
   customer,
   onRemove,
-  isRemoving, // Only true for this specific customer
+  isRemoving,
 }) => {
   const enteredTime = new Date(customer.enteredAt);
   const waitTime = Math.floor(
@@ -255,42 +266,68 @@ const QueueCustomerCard: React.FC<QueueCustomerCardProps> = ({
         </div>
         <div>
           <h4 className="font-medium text-title">{customer.user.name}</h4>
+          <p className="text-sm text-muted font-mono">
+            📞 {customer.user.phoneNumber}
+          </p>
           <p className="text-sm text-muted">
             Waiting for {waitTime < 1 ? "less than 1" : waitTime} minute
             {waitTime !== 1 ? "s" : ""}
           </p>
+          {customer.service && (
+            <p className="text-xs text-primary-600 dark:text-primary-400 font-medium mt-1">
+              {customer.service === "haircut+beard"
+                ? "Haircut + Beard"
+                : customer.service === "haircut"
+                ? "Haircut"
+                : "Beard Trim"}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="flex items-center space-x-2">
+        <a
+          href={`tel:${customer.user.phoneNumber}`}
+          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-100 flex items-center space-x-1 shadow-lg hover:shadow-xl dark:hover:shadow-glow-blue transform hover:scale-105"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+            />
+          </svg>
+          <span>Call</span>
+        </a>
         <button
           onClick={() => onRemove(customer.user.id, customer.user.name)}
-          disabled={isRemoving} // Only disabled for this specific customer
+          disabled={isRemoving}
           className="bg-green-600 hover:bg-green-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-dark-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl dark:hover:shadow-glow-blue transform hover:scale-105"
         >
           {isRemoving ? (
-            <>
-              <LoadingSpinner size="sm" />
-              <span>Serving...</span>
-            </>
+            <LoadingSpinner size="sm" className="text-white" />
           ) : (
-            <>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span>Serve Customer</span>
-            </>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           )}
+          <span>{isRemoving ? "Removing..." : "Done"}</span>
         </button>
       </div>
     </div>
